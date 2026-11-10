@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block title %}Flocks & Sheds - EggFarm Monitor{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-slate-200">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900">Flocks & Poultry Sheds</h1>
+            <p class="text-sm text-slate-500">Manage bird batches, breeds, housing dates, and active live counts.</p>
+        </div>
+        <a href="{% url 'flock_create' %}" class="inline-flex items-center px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-medium rounded-lg text-sm shadow-sm transition">
+            <i data-lucide="plus" class="w-4 h-4 mr-1.5"></i>
+            Add Flock / Shed
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {% for flock in flocks %}
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col justify-between">
+            <div>
+                <div class="flex items-center justify-between">
+                    <span class="px-2 py-0.5 rounded text-xs font-semibold {% if flock.is_active %}bg-emerald-100 text-emerald-800{% else %}bg-slate-100 text-slate-600{% endif %}">
+                        {% if flock.is_active %}Active Flock{% else %}Archived / Depleted{% endif %}
+                    </span>
+                    <span class="text-xs text-slate-400 font-medium">Age: {{ flock.age_in_weeks }} weeks</span>
+                </div>
+                <h3 class="text-lg font-bold text-slate-900 mt-2">{{ flock.name }}</h3>
+                <p class="text-xs text-slate-500">Breed: {{ flock.breed|default:"Not specified" }}</p>
+
+                <div class="mt-4 pt-3 border-t border-slate-100 grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                        <span class="text-slate-400 block">Initial Birds</span>
+                        <span class="font-bold text-slate-800 text-sm">{{ flock.initial_birds }}</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 block">Current Live Birds</span>
+                        <span class="font-bold text-emerald-700 text-sm">{{ flock.current_birds }}</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 block">Cumulative Mortality</span>
+                        <span class="font-bold text-red-600 text-sm">{{ flock.total_mortality }}</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 block">Housed Date</span>
+                        <span class="text-slate-700 font-medium">{{ flock.housing_date|date:"M d, Y" }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-end">
+                <a href="{% url 'log_create' %}?flock={{ flock.id }}" class="text-xs font-semibold text-amber-600 hover:text-amber-800">
+                    Log Eggs for this shed &rarr;
+                </a>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-span-full p-8 text-center bg-white rounded-xl border border-slate-200 text-slate-400">
+            No flocks registered yet. Click "Add Flock / Shed" above to register your first shed or pen!
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

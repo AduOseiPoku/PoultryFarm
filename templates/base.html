@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}EggFarm Pro - Layer Farm Manager{% endblock %}</title>
+    <!-- Precompiled CDN Stylesheet (Instant CSS parsing without client-side JIT runtime) -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        /* Custom brand amber palette overrides */
+        .bg-amber-50 { background-color: #fffbeb; }
+        .bg-amber-100 { background-color: #fef3c7; }
+        .bg-amber-200 { background-color: #fde68a; }
+        .bg-amber-600 { background-color: #d97706; }
+        .bg-amber-700 { background-color: #b45309; }
+        .bg-amber-800 { background-color: #92400e; }
+        .text-amber-100 { color: #fef3c7; }
+        .text-amber-200 { color: #fde68a; }
+        .text-amber-600 { color: #d97706; }
+        .text-amber-700 { color: #b45309; }
+        .text-amber-800 { color: #92400e; }
+        .border-amber-200 { border-color: #fde68a; }
+        .border-amber-500 { border-color: #f59e0b; }
+        .hover\:bg-amber-50:hover { background-color: #fffbeb; }
+        .hover\:bg-amber-700:hover { background-color: #b45309; }
+        .hover\:bg-amber-800:hover { background-color: #92400e; }
+        .hover\:text-amber-800:hover { color: #92400e; }
+    </style>
+    <!-- HTMX for SPA-like instant page transitions without white flashes -->
+    <script src="https://unpkg.com/htmx.org@1.9.12" integrity="sha384-ujb1lZYygJmzgSwoxRggbCHcjc0rB2XoMVMf3CdUnKsZSsrM83mTmjqdgpST338Z" crossorigin="anonymous"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body hx-boost="true" class="bg-gray-50 text-gray-800 antialiased min-h-screen flex flex-col font-sans">
+
+    <!-- Top Navigation Bar -->
+    <header class="bg-amber-600 text-white shadow-md sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center space-x-3">
+                    <a href="{% url 'dashboard' %}" class="flex items-center space-x-2 text-xl font-bold tracking-tight">
+                        <span class="text-2xl">🥚</span>
+                        <span>EggFarm <span class="text-amber-200 font-normal">Monitor</span></span>
+                    </a>
+                </div>
+
+                <nav class="hidden md:flex space-x-1">
+                    <a href="{% url 'dashboard' %}" class="px-3 py-2 rounded-md text-sm font-medium hover:bg-amber-700 transition {% if request.resolver_match.url_name == 'dashboard' %}bg-amber-700{% endif %}">
+                        Dashboard
+                    </a>
+                    <a href="{% url 'log_list' %}" class="px-3 py-2 rounded-md text-sm font-medium hover:bg-amber-700 transition {% if 'log' in request.resolver_match.url_name %}bg-amber-700{% endif %}">
+                        Daily Logs
+                    </a>
+                    <a href="{% url 'sales_list' %}" class="px-3 py-2 rounded-md text-sm font-medium hover:bg-amber-700 transition {% if 'sales' in request.resolver_match.url_name %}bg-amber-700{% endif %}">
+                        Egg Sales
+                    </a>
+                    <a href="{% url 'inventory' %}" class="px-3 py-2 rounded-md text-sm font-medium hover:bg-amber-700 transition {% if request.resolver_match.url_name == 'inventory' %}bg-amber-700{% endif %}">
+                        Egg Room Stock
+                    </a>
+                    <a href="{% url 'flock_list' %}" class="px-3 py-2 rounded-md text-sm font-medium hover:bg-amber-700 transition {% if 'flock' in request.resolver_match.url_name %}bg-amber-700{% endif %}">
+                        Flocks / Sheds
+                    </a>
+                </nav>
+
+                <div class="flex items-center space-x-3">
+                    <a href="{% url 'log_create' %}" class="inline-flex items-center space-x-1 bg-white text-amber-700 hover:bg-amber-50 font-semibold px-3 py-1.5 rounded-lg text-sm shadow-sm transition">
+                        <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                        <span>New Log</span>
+                    </a>
+                    <a href="/admin/" target="_blank" hx-boost="false" class="text-amber-100 hover:text-white text-xs underline">
+                        Admin
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Navigation Submenu -->
+        <div class="md:hidden flex overflow-x-auto px-4 py-2 bg-amber-700 space-x-2 text-xs">
+            <a href="{% url 'dashboard' %}" class="px-2.5 py-1 rounded whitespace-nowrap {% if request.resolver_match.url_name == 'dashboard' %}bg-amber-800 font-bold{% endif %}">Dashboard</a>
+            <a href="{% url 'log_list' %}" class="px-2.5 py-1 rounded whitespace-nowrap {% if 'log' in request.resolver_match.url_name %}bg-amber-800 font-bold{% endif %}">Daily Logs</a>
+            <a href="{% url 'sales_list' %}" class="px-2.5 py-1 rounded whitespace-nowrap {% if 'sales' in request.resolver_match.url_name %}bg-amber-800 font-bold{% endif %}">Sales</a>
+            <a href="{% url 'inventory' %}" class="px-2.5 py-1 rounded whitespace-nowrap {% if request.resolver_match.url_name == 'inventory' %}bg-amber-800 font-bold{% endif %}">Stock</a>
+            <a href="{% url 'flock_list' %}" class="px-2.5 py-1 rounded whitespace-nowrap {% if 'flock' in request.resolver_match.url_name %}bg-amber-800 font-bold{% endif %}">Flocks</a>
+        </div>
+    </header>
+
+    <!-- Notification Messages -->
+    {% if messages %}
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4 w-full">
+        {% for message in messages %}
+        <div class="p-4 rounded-lg text-sm mb-3 flex items-center justify-between {% if message.tags == 'error' %}bg-red-50 text-red-800 border border-red-200{% else %}bg-green-50 text-green-800 border border-green-200{% endif %}">
+            <div class="flex items-center space-x-2">
+                <i data-lucide="info" class="w-4 h-4"></i>
+                <span>{{ message }}</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Main Page Content -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 py-4 text-center text-xs text-gray-500 mt-auto">
+        <p>Egg-Laying Poultry Farm Monitoring System &copy; 2026. All daily records secured.</p>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+        document.body.addEventListener('htmx:afterSwap', function() {
+            lucide.createIcons();
+        });
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

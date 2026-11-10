@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+
+{% block title %}Egg Sales & Invoices - EggFarm Monitor{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-gray-200">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Egg Sales & Customer Dispatches</h1>
+            <p class="text-sm text-gray-500">Track egg crates sold, unit prices, payments received, and outstanding credit balances.</p>
+        </div>
+        <a href="{% url 'sales_create' %}" class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg text-sm shadow-sm transition">
+            <i data-lucide="plus" class="w-4 h-4 mr-1.5"></i>
+            Record New Sale
+        </a>
+    </div>
+
+    <!-- Sales Financial Summary Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+            <div>
+                <p class="text-xs uppercase font-semibold text-gray-400">Total Recorded Sales</p>
+                <p class="text-2xl font-bold text-gray-900 mt-1">${{ total_sales_amount }}</p>
+            </div>
+            <div class="p-3 bg-green-100 text-green-700 rounded-lg">
+                <i data-lucide="dollar-sign" class="w-6 h-6"></i>
+            </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+            <div>
+                <p class="text-xs uppercase font-semibold text-gray-400">Total Unpaid / Credit Due</p>
+                <p class="text-2xl font-bold {% if total_unpaid > 0 %}text-red-600{% else %}text-gray-900{% endif %} mt-1">${{ total_unpaid }}</p>
+            </div>
+            <div class="p-3 bg-red-100 text-red-700 rounded-lg">
+                <i data-lucide="clock" class="w-6 h-6"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="flex items-center space-x-2 text-xs">
+        <span class="font-semibold text-gray-500">Filter Status:</span>
+        <a href="{% url 'sales_list' %}" class="px-3 py-1 rounded-full {% if not current_status %}bg-gray-800 text-white font-bold{% else %}bg-gray-200 text-gray-700{% endif %}">All</a>
+        <a href="{% url 'sales_list' %}?status=PAID" class="px-3 py-1 rounded-full {% if current_status == 'PAID' %}bg-green-600 text-white font-bold{% else %}bg-green-50 text-green-800{% endif %}">Paid</a>
+        <a href="{% url 'sales_list' %}?status=UNPAID" class="px-3 py-1 rounded-full {% if current_status == 'UNPAID' %}bg-red-600 text-white font-bold{% else %}bg-red-50 text-red-800{% endif %}">Unpaid / Credit</a>
+        <a href="{% url 'sales_list' %}?status=PARTIAL" class="px-3 py-1 rounded-full {% if current_status == 'PARTIAL' %}bg-amber-600 text-white font-bold{% else %}bg-amber-50 text-amber-800{% endif %}">Partial</a>
+    </div>
+
+    <!-- Sales Table -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-gray-50 text-gray-500 uppercase text-xs font-semibold border-b border-gray-200">
+                    <tr>
+                        <th class="p-4">Date</th>
+                        <th class="p-4">Customer</th>
+                        <th class="p-4">Crates Sold</th>
+                        <th class="p-4">Loose Sold</th>
+                        <th class="p-4">Rate / Crate</th>
+                        <th class="p-4">Total Amount</th>
+                        <th class="p-4">Paid</th>
+                        <th class="p-4">Balance Due</th>
+                        <th class="p-4">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for sale in sales %}
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="p-4 font-semibold text-gray-900">{{ sale.date|date:"M d, Y" }}</td>
+                        <td class="p-4 font-medium text-gray-800">
+                            {{ sale.customer_name }}
+                            {% if sale.customer_phone %}<span class="text-xs text-gray-400 block">{{ sale.customer_phone }}</span>{% endif %}
+                        </td>
+                        <td class="p-4 font-bold text-amber-700">{{ sale.crates_sold }} crates</td>
+                        <td class="p-4 text-gray-600">{{ sale.loose_eggs_sold }}</td>
+                        <td class="p-4 text-gray-600">${{ sale.price_per_crate }}</td>
+                        <td class="p-4 font-bold text-gray-900">${{ sale.total_amount }}</td>
+                        <td class="p-4 text-green-700 font-semibold">${{ sale.amount_paid }}</td>
+                        <td class="p-4 {% if sale.balance_due > 0 %}text-red-600 font-bold{% else %}text-gray-400{% endif %}">
+                            ${{ sale.balance_due }}
+                        </td>
+                        <td class="p-4">
+                            {% if sale.payment_status == 'PAID' %}
+                                <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">Paid</span>
+                            {% elif sale.payment_status == 'PARTIAL' %}
+                                <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">Partial</span>
+                            {% else %}
+                                <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800">Credit / Unpaid</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="p-8 text-center text-gray-400">
+                            No egg sales recorded yet. Click "Record New Sale" to dispatch crates to buyers.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination Controls -->
+        {% if page_obj.has_other_pages %}
+        <div class="p-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between text-xs text-gray-600">
+            <div>
+                Showing Page <span class="font-bold text-gray-900">{{ page_obj.number }}</span> of <span class="font-bold text-gray-900">{{ page_obj.paginator.num_pages }}</span> (Total {{ page_obj.paginator.count }} sales)
+            </div>
+            <div class="flex items-center space-x-1">
+                {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}" class="px-3 py-1.5 bg-white border border-gray-300 rounded hover:bg-gray-100 font-medium">&laquo; Previous</a>
+                {% endif %}
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}" class="px-3 py-1.5 bg-white border border-gray-300 rounded hover:bg-gray-100 font-medium">Next &raquo;</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

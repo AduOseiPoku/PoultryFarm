@@ -1,0 +1,268 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - EggFarm Monitor{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Top Action Banner -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-slate-200">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Farm Overview</h1>
+            <p class="text-sm text-slate-500">Real-time daily egg production, breakage rate, and sales performance.</p>
+        </div>
+        <div class="flex items-center space-x-3">
+            <a href="{% url 'log_create' %}" class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-amber-600 hover:bg-amber-700">
+                <i data-lucide="clipboard-list" class="w-4 h-4 mr-2"></i>
+                Log Today's Eggs
+            </a>
+            <a href="{% url 'sales_create' %}" class="inline-flex items-center px-4 py-2 border border-slate-300 rounded-lg shadow-sm text-sm font-medium text-slate-700 bg-white hover:bg-slate-50">
+                <i data-lucide="shopping-cart" class="w-4 h-4 mr-2 text-emerald-600"></i>
+                Record Sale
+            </a>
+        </div>
+    </div>
+
+    <!-- KPI Metric Cards Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        <!-- Card 1: Today's Collection -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Today's Collection</span>
+                <span class="p-2 bg-amber-100 text-amber-700 rounded-lg">
+                    <i data-lucide="egg" class="w-5 h-5"></i>
+                </span>
+            </div>
+            <div class="mt-3">
+                <div class="text-2xl font-bold text-slate-900">
+                    {{ today_crates }} <span class="text-sm font-normal text-slate-500">crates</span>
+                </div>
+                <div class="text-xs text-slate-500 mt-1">
+                    + {{ today_loose }} loose eggs (Total: <span class="font-medium text-slate-700">{{ today_good_eggs }}</span> eggs)
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 2: Today's Breakage -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Broken Eggs Today</span>
+                <span class="p-2 {% if today_breakage_pct > 2.0 %}bg-red-100 text-red-700{% else %}bg-slate-100 text-slate-700{% endif %} rounded-lg">
+                    <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                </span>
+            </div>
+            <div class="mt-3">
+                <div class="text-2xl font-bold {% if today_breakage_pct > 2.0 %}text-red-600{% else %}text-slate-900{% endif %}">
+                    {{ today_broken }} <span class="text-sm font-normal text-slate-500">broken</span>
+                </div>
+                <div class="text-xs mt-1 {% if today_breakage_pct > 2.0 %}text-red-600 font-semibold{% else %}text-slate-500{% endif %}">
+                    Breakage Rate: {{ today_breakage_pct }}%
+                    {% if today_breakage_pct > 2.0 %}(High){% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 3: Hen-Day Production (HDP) -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Hen-Day Laying (HDP)</span>
+                <span class="p-2 bg-blue-100 text-blue-700 rounded-lg">
+                    <i data-lucide="activity" class="w-5 h-5"></i>
+                </span>
+            </div>
+            <div class="mt-3">
+                <div class="text-2xl font-bold text-slate-900">
+                    {{ today_hdp }}%
+                </div>
+                <div class="text-xs text-slate-500 mt-1">
+                    Across {{ total_live_birds }} live birds (Mortality: {{ today_mortality }})
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 4: Egg Room Stock & Revenue -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Store Stock on Hand</span>
+                <span class="p-2 bg-emerald-100 text-emerald-700 rounded-lg">
+                    <i data-lucide="boxes" class="w-5 h-5"></i>
+                </span>
+            </div>
+            <div class="mt-3">
+                <div class="text-2xl font-bold text-emerald-700">
+                    {{ crates_in_stock }} <span class="text-sm font-normal text-slate-500">crates ready</span>
+                </div>
+                <div class="text-xs text-slate-500 mt-1">
+                    Today's Sales: {{ today_crates_sold }} crates (${{ today_revenue }})
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Chart: 7-Day Production vs Sales Trend -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h2 class="text-lg font-bold text-slate-900">7-Day Production vs. Sales (Crates)</h2>
+                <p class="text-xs text-slate-500">Compares daily collection crates with dispatch crates and breakages.</p>
+            </div>
+        </div>
+        <div class="h-64 sm:h-72">
+            <canvas id="productionChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Two-column tables: Recent Production & Recent Sales -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <!-- Table 1: Recent Daily Logs -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="p-4 border-b border-slate-200 flex items-center justify-between">
+                <h3 class="font-bold text-slate-900 flex items-center gap-2">
+                    <i data-lucide="clipboard-list" class="w-4 h-4 text-amber-600"></i>
+                    Recent Shed Logs
+                </h3>
+                <a href="{% url 'log_list' %}" class="text-xs font-semibold text-amber-600 hover:text-amber-800">View All &rarr;</a>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-50 text-slate-500 uppercase font-semibold">
+                        <tr>
+                            <th class="p-3">Date</th>
+                            <th class="p-3">Flock</th>
+                            <th class="p-3">Crates</th>
+                            <th class="p-3">Broken</th>
+                            <th class="p-3">Breakage %</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for log in recent_logs %}
+                        <tr class="hover:bg-slate-50">
+                            <td class="p-3 font-medium text-slate-900">{{ log.date|date:"M d, Y" }}</td>
+                            <td class="p-3 text-slate-600">{{ log.flock.name }}</td>
+                            <td class="p-3 font-semibold text-slate-800">{{ log.crates_collected }} cr + {{ log.loose_eggs_collected }}</td>
+                            <td class="p-3 text-red-600 font-medium">{{ log.broken_eggs }}</td>
+                            <td class="p-3">
+                                <span class="px-2 py-0.5 rounded text-2xl font-bold {% if log.breakage_percentage > 2.0 %}bg-red-100 text-red-800{% else %}bg-slate-100 text-slate-700{% endif %}" style="font-size: 0.75rem;">
+                                    {{ log.breakage_percentage }}%
+                                </span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="p-4 text-center text-slate-400">No logs recorded yet. <a href="{% url 'log_create' %}" class="text-amber-600 underline">Add one now</a>.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Table 2: Recent Egg Sales -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="p-4 border-b border-slate-200 flex items-center justify-between">
+                <h3 class="font-bold text-slate-900 flex items-center gap-2">
+                    <i data-lucide="shopping-cart" class="w-4 h-4 text-emerald-600"></i>
+                    Recent Dispatches & Sales
+                </h3>
+                <a href="{% url 'sales_list' %}" class="text-xs font-semibold text-amber-600 hover:text-amber-800">View All &rarr;</a>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-50 text-slate-500 uppercase font-semibold">
+                        <tr>
+                            <th class="p-3">Date</th>
+                            <th class="p-3">Customer</th>
+                            <th class="p-3">Crates</th>
+                            <th class="p-3">Amount</th>
+                            <th class="p-3">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for sale in recent_sales %}
+                        <tr class="hover:bg-slate-50">
+                            <td class="p-3 font-medium text-slate-900">{{ sale.date|date:"M d, Y" }}</td>
+                            <td class="p-3 text-slate-600 font-medium">{{ sale.customer_name }}</td>
+                            <td class="p-3 font-semibold text-slate-800">{{ sale.crates_sold }} cr</td>
+                            <td class="p-3 text-slate-900 font-bold">${{ sale.total_amount }}</td>
+                            <td class="p-3">
+                                {% if sale.payment_status == 'PAID' %}
+                                    <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">Paid</span>
+                                {% elif sale.payment_status == 'PARTIAL' %}
+                                    <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">Partial</span>
+                                {% else %}
+                                    <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800">Credit</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="p-4 text-center text-slate-400">No sales recorded yet. <a href="{% url 'sales_create' %}" class="text-amber-600 underline">Record a sale</a>.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js loaded only on dashboard where chart is present -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const labels = {{ chart_labels|safe }};
+    const cratesProduced = {{ chart_crates_produced|safe }};
+    const cratesSold = {{ chart_crates_sold|safe }};
+
+    const ctx = document.getElementById('productionChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Crates Collected',
+                    data: cratesProduced,
+                    borderColor: '#d97706',
+                    backgroundColor: 'rgba(217, 119, 6, 0.1)',
+                    tension: 0.3,
+                    fill: true,
+                    borderWidth: 2
+                },
+                {
+                    label: 'Crates Sold',
+                    data: cratesSold,
+                    borderColor: '#059669',
+                    backgroundColor: 'transparent',
+                    borderDash: [5, 5],
+                    tension: 0.3,
+                    borderWidth: 2
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        precision: 0
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

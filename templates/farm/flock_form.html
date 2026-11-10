@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} - EggFarm Monitor{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto">
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="p-6 bg-slate-800 text-white flex items-center justify-between">
+            <div>
+                <h1 class="text-xl font-bold">{{ title }}</h1>
+                <p class="text-xs text-slate-300 mt-1">Register a new pen or barn house and bird population.</p>
+            </div>
+            <i data-lucide="home" class="w-8 h-8 text-slate-300"></i>
+        </div>
+
+        <form method="post" class="p-6 space-y-4">
+            {% csrf_token %}
+
+            <div>
+                <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Flock / Shed Name *</label>
+                {{ form.name }}
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Breed</label>
+                {{ form.breed }}
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Housing Date</label>
+                    {{ form.housing_date }}
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Initial Birds Placed *</label>
+                    {{ form.initial_birds }}
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Current Live Birds *</label>
+                {{ form.current_birds }}
+            </div>
+
+            <div class="flex items-center space-x-2 pt-2">
+                {{ form.is_active }}
+                <label class="text-sm font-medium text-slate-700">Flock is currently active and laying</label>
+            </div>
+
+            <div class="flex items-center justify-end space-x-3 pt-4 border-t border-slate-200">
+                <a href="{% url 'flock_list' %}" class="px-4 py-2 border border-slate-300 rounded-lg text-sm text-slate-700 hover:bg-slate-50">Cancel</a>
+                <button type="submit" class="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-medium rounded-lg text-sm shadow-sm transition">
+                    Save Flock
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

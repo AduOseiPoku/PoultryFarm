@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block title %}Egg Room Inventory & Stock Balance - EggFarm Monitor{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="pb-2 border-b border-slate-200">
+        <h1 class="text-2xl font-bold text-slate-900">Egg Room Inventory & Reconciliation</h1>
+        <p class="text-sm text-slate-500">Real-time accounting of eggs collected vs. eggs dispatched/sold to prevent inventory loss.</p>
+    </div>
+
+    <!-- Stock Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+            <span class="text-xs uppercase font-semibold text-slate-400">Total Crates Produced</span>
+            <div class="text-3xl font-extrabold text-amber-700 mt-2">
+                {{ total_crates_collected }} <span class="text-sm font-normal text-slate-500">crates</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-1">+ {{ total_loose_collected }} loose eggs</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+            <span class="text-xs uppercase font-semibold text-slate-400">Total Crates Dispatched / Sold</span>
+            <div class="text-3xl font-extrabold text-slate-800 mt-2">
+                {{ total_crates_sold }} <span class="text-sm font-normal text-slate-500">crates</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-1">+ {{ total_loose_sold }} loose eggs</p>
+        </div>
+
+        <div class="bg-emerald-50 p-6 rounded-xl border border-emerald-200 shadow-sm">
+            <span class="text-xs uppercase font-semibold text-emerald-800">Current Stock on Hand</span>
+            <div class="text-3xl font-extrabold text-emerald-700 mt-2">
+                {{ crates_in_stock }} <span class="text-sm font-normal text-emerald-600">crates ready</span>
+            </div>
+            <p class="text-xs text-emerald-700 mt-1">+ {{ loose_in_stock }} loose eggs</p>
+        </div>
+    </div>
+
+    <!-- Egg Quality & Breakage Audit -->
+    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+        <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+            <i data-lucide="alert-circle" class="w-5 h-5 text-red-500"></i>
+            Cumulative Breakage & Loss Audit
+        </h2>
+        <p class="text-sm text-slate-600">
+            Across all production records, a cumulative total of <span class="font-bold text-red-600">{{ total_broken }} eggs</span> have been recorded as broken, cracked, or soft-shelled.
+        </p>
+        <div class="p-4 bg-slate-50 rounded-lg flex items-center justify-between">
+            <span class="text-sm font-medium text-slate-700">Overall Farm Breakage Rate:</span>
+            <span class="text-lg font-bold {% if overall_breakage_pct > 2.0 %}text-red-600{% else %}text-slate-800{% endif %}">
+                {{ overall_breakage_pct }}%
+            </span>
+        </div>
+        <p class="text-xs text-slate-400">
+            * Industry benchmark for commercial layer farms is typically below 1.5%–2.0%. A rising rate may indicate calcium deficiency in feed or aggressive mechanical handling.
+        </p>
+    </div>
+</div>
+{% endblock %}

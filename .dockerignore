@@ -1,0 +1,29 @@
+# Git
+.git
+.gitignore
+
+# Virtual environment
+venv/
+env/
+.env
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Local Database & persistent data
+db.sqlite3
+db.sqlite3-journal
+data/
+
+# Static and media
+staticfiles/
+media/
+
+# IDE / Editor
+.idea/
+.vscode/
+*.swp
+*.swo

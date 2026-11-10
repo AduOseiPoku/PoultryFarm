@@ -1,0 +1,45 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - SECRET_KEY=${SECRET_KEY:-django-insecure-production-change-me}
+      - DEBUG=${DEBUG:-False}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-*}
+      - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS:-http://localhost:8000}
+      - DATA_DIR=/app/data
+      # Uncomment if connecting to the Postgres service below:
+      # - DATABASE_URL=postgresql://${POSTGRES_USER:-poultry_user}:${POSTGRES_PASSWORD:-poultry_secret}@db:5432/${POSTGRES_DB:-poultryfarm}
+    volumes:
+      # Persistent volume for SQLite and uploaded media if not using Postgres
+      - farm_data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # Optional PostgreSQL service (uncomment if you want a dedicated database container)
+  # db:
+  #   image: postgres:16-alpine
+  #   restart: unless-stopped
+  #   environment:
+  #     POSTGRES_DB: ${POSTGRES_DB:-poultryfarm}
+  #     POSTGRES_USER: ${POSTGRES_USER:-poultry_user}
+  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-poultry_secret}
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U poultry_user -d poultryfarm"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+
+volumes:
+  farm_data:
+  # postgres_data:

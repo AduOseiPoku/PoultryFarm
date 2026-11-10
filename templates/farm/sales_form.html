@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} - EggFarm Monitor{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="p-6 bg-emerald-600 text-white flex items-center justify-between">
+            <div>
+                <h1 class="text-xl font-bold">{{ title }}</h1>
+                <p class="text-xs text-emerald-100 mt-1">Record crates sold, customer billing, and payment method.</p>
+            </div>
+            <i data-lucide="receipt" class="w-8 h-8 text-emerald-200"></i>
+        </div>
+
+        <form method="post" id="salesForm" class="p-6 space-y-5" onsubmit="handleSaleSubmit(this, event)">
+            {% csrf_token %}
+
+            {% if form.errors %}
+            <div class="p-4 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">
+                <p class="font-bold mb-1">Please correct the following errors:</p>
+                <ul class="list-disc list-inside space-y-0.5">
+                    {% for field, errors in form.errors.items %}
+                        {% for error in errors %}
+                            <li><span class="font-semibold">{{ field|capfirst }}:</span> {{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-gray-500 mb-1">Sale Date *</label>
+                    {{ form.date }}
+                    {% if form.date.errors %}<p class="text-xs text-red-600 mt-1">{{ form.date.errors.0 }}</p>{% endif %}
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-gray-500 mb-1">Customer / Buyer Name *</label>
+                    {{ form.customer_name }}
+                    {% if form.customer_name.errors %}<p class="text-xs text-red-600 mt-1">{{ form.customer_name.errors.0 }}</p>{% endif %}
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold uppercase text-gray-500 mb-1">Customer Phone (Optional)</label>
+                {{ form.customer_phone }}
+                {% if form.customer_phone.errors %}<p class="text-xs text-red-600 mt-1">{{ form.customer_phone.errors.0 }}</p>{% endif %}
+            </div>
+
+            <!-- Crates & Price Breakdown -->
+            <div class="p-4 bg-emerald-50 rounded-xl border border-emerald-200 space-y-4">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-900 flex items-center gap-1.5">
+                    <i data-lucide="package" class="w-4 h-4"></i>
+                    Dispatch Quantity & Rate
+                </h3>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Crates Sold (30 eggs/cr) *</label>
+                        {{ form.crates_sold }}
+                        {% if form.crates_sold.errors %}<p class="text-xs text-red-600 mt-1">{{ form.crates_sold.errors.0 }}</p>{% endif %}
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Price per Crate ($) *</label>
+                        {{ form.price_per_crate }}
+                        {% if form.price_per_crate.errors %}<p class="text-xs text-red-600 mt-1">{{ form.price_per_crate.errors.0 }}</p>{% endif %}
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Loose Eggs Sold (Optional)</label>
+                        {{ form.loose_eggs_sold }}
+                        {% if form.loose_eggs_sold.errors %}<p class="text-xs text-red-600 mt-1">{{ form.loose_eggs_sold.errors.0 }}</p>{% endif %}
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Price per Loose Egg ($)</label>
+                        {{ form.price_per_loose_egg }}
+                        {% if form.price_per_loose_egg.errors %}<p class="text-xs text-red-600 mt-1">{{ form.price_per_loose_egg.errors.0 }}</p>{% endif %}
+                    </div>
+                </div>
+
+                <div class="bg-white p-3 rounded-lg border border-emerald-200 text-xs flex items-center justify-between">
+                    <span class="text-gray-600 font-medium">Estimated Bill Total:</span>
+                    <span id="calc_total_bill" class="font-bold text-lg text-emerald-700">$0.00</span>
+                </div>
+            </div>
+
+            <!-- Payment details -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-gray-500 mb-1">Amount Paid ($)</label>
+                    {{ form.amount_paid }}
+                    <span class="text-[11px] text-gray-400 mt-1 block">Leave blank or 0 if customer is buying on credit.</span>
+                    {% if form.amount_paid.errors %}<p class="text-xs text-red-600 mt-1">{{ form.amount_paid.errors.0 }}</p>{% endif %}
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-gray-500 mb-1">Payment Method</label>
+                    {{ form.payment_method }}
+                    {% if form.payment_method.errors %}<p class="text-xs text-red-600 mt-1">{{ form.payment_method.errors.0 }}</p>{% endif %}
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold uppercase text-gray-500 mb-1">Notes / Payment Reference (Optional)</label>
+                {{ form.notes }}
+                {% if form.notes.errors %}<p class="text-xs text-red-600 mt-1">{{ form.notes.errors.0 }}</p>{% endif %}
+            </div>
+
+            <div class="flex items-center justify-end space-x-3 pt-3 border-t border-gray-200">
+                <a href="{% url 'sales_list' %}" class="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50">Cancel</a>
+                <button type="submit" id="saveSaleBtn" class="inline-flex items-center justify-center px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg text-sm shadow-sm transition disabled:opacity-75 disabled:cursor-not-allowed">
+                    <span id="saleBtnIcon" class="mr-1.5"><i data-lucide="check" class="w-4 h-4"></i></span>
+                    <span id="saleBtnText">Save Sale</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const cratesSoldInp = document.getElementById('id_crates_sold');
+    const priceCrateInp = document.getElementById('id_price_crate');
+    const looseSoldInp = document.getElementById('id_loose_sold');
+    const priceLooseInp = document.getElementById('id_price_loose');
+    const totalBillSpan = document.getElementById('calc_total_bill');
+
+    function recalcSale() {
+        const crates = parseFloat(cratesSoldInp ? cratesSoldInp.value : 0) || 0;
+        const cratePrice = parseFloat(priceCrateInp ? priceCrateInp.value : 0) || 0;
+        const loose = parseFloat(looseSoldInp ? looseSoldInp.value : 0) || 0;
+        const loosePrice = parseFloat(priceLooseInp ? priceLooseInp.value : 0) || 0;
+
+        const total = (crates * cratePrice) + (loose * loosePrice);
+        if (totalBillSpan) totalBillSpan.textContent = '$' + total.toFixed(2);
+    }
+
+    [cratesSoldInp, priceCrateInp, looseSoldInp, priceLooseInp].forEach(inp => {
+        if(inp) inp.addEventListener('input', recalcSale);
+    });
+
+    recalcSale();
+
+    function handleSaleSubmit(form, e) {
+        const btn = document.getElementById('saveSaleBtn');
+        const btnText = document.getElementById('saleBtnText');
+        const btnIcon = document.getElementById('saleBtnIcon');
+
+        if (btn) {
+            btn.disabled = true;
+            btnText.textContent = 'Saving Sale...';
+            btnIcon.innerHTML = '<svg class="animate-spin h-4 w-4 text-white inline-block mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>';
+        }
+    }
+</script>
+{% endblock %}
