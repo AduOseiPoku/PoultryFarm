@@ -9,30 +9,79 @@
         <p class="text-sm text-slate-500">Real-time accounting of eggs collected vs. eggs dispatched/sold to prevent inventory loss.</p>
     </div>
 
-    <!-- Stock Summary Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-            <span class="text-xs uppercase font-semibold text-slate-400">Total Crates Produced</span>
-            <div class="text-3xl font-extrabold text-amber-700 mt-2">
-                {{ total_crates_collected }} <span class="text-sm font-normal text-slate-500">crates</span>
+    <!-- Today's Intake & Production Highlight Banner -->
+    <div class="bg-gradient-to-r from-amber-50 via-amber-50/60 to-orange-50 rounded-xl border border-amber-200 p-5 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="flex items-start gap-3.5">
+                <div class="p-3 bg-amber-500 text-white rounded-xl shadow-sm">
+                    <i data-lucide="package-plus" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-bold uppercase tracking-wider text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full">Today's Intake</span>
+                        <span class="text-xs text-slate-500 font-medium">{{ today|date:"l, M d, Y" }}</span>
+                    </div>
+                    <div class="mt-1.5 flex flex-wrap items-baseline gap-2">
+                        <span class="text-3xl font-extrabold text-slate-900">{{ today_crates_collected }}</span>
+                        <span class="text-base font-semibold text-slate-700">crates</span>
+                        <span class="text-sm font-medium text-slate-500">+ {{ today_loose_collected }} loose eggs</span>
+                        <span class="text-xs font-normal text-slate-400">({{ today_total_eggs }} total eggs)</span>
+                    </div>
+                </div>
             </div>
-            <p class="text-xs text-slate-500 mt-1">+ {{ total_loose_collected }} loose eggs</p>
-        </div>
 
-        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-            <span class="text-xs uppercase font-semibold text-slate-400">Total Crates Dispatched / Sold</span>
-            <div class="text-3xl font-extrabold text-slate-800 mt-2">
-                {{ total_crates_sold }} <span class="text-sm font-normal text-slate-500">crates</span>
+            <!-- Quick Day Context Badges -->
+            <div class="flex items-center gap-4 pt-2 sm:pt-0 border-t sm:border-t-0 border-amber-200">
+                <div class="text-left sm:text-right">
+                    <span class="text-[11px] uppercase tracking-wider font-semibold text-slate-400 block">Today's Breakage</span>
+                    <span class="text-sm font-bold {% if today_broken > 0 %}text-red-600{% else %}text-slate-700{% endif %}">
+                        {{ today_broken }} eggs
+                    </span>
+                </div>
+                <div class="h-8 w-px bg-amber-200 hidden sm:block"></div>
+                <div class="text-left sm:text-right">
+                    <span class="text-[11px] uppercase tracking-wider font-semibold text-slate-400 block">Today's Dispatched</span>
+                    <span class="text-sm font-bold text-slate-700">
+                        {{ today_crates_sold }} crates
+                    </span>
+                </div>
+                <a href="{% url 'log_create' %}" class="inline-flex items-center gap-1.5 px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-medium shadow-sm transition ml-1">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                    <span>Add Log</span>
+                </a>
             </div>
-            <p class="text-xs text-slate-500 mt-1">+ {{ total_loose_sold }} loose eggs</p>
         </div>
+    </div>
 
-        <div class="bg-emerald-50 p-6 rounded-xl border border-emerald-200 shadow-sm">
-            <span class="text-xs uppercase font-semibold text-emerald-800">Current Stock on Hand</span>
-            <div class="text-3xl font-extrabold text-emerald-700 mt-2">
-                {{ crates_in_stock }} <span class="text-sm font-normal text-emerald-600">crates ready</span>
+    <!-- Stock Summary Cards (Cumulative Reconciliation) -->
+    <div>
+        <div class="mb-3 flex items-center justify-between">
+            <h2 class="text-xs uppercase font-bold tracking-wider text-slate-400">All-Time Stock Reconciliation</h2>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                <span class="text-xs uppercase font-semibold text-slate-400">Total Crates Produced (All-Time)</span>
+                <div class="text-3xl font-extrabold text-amber-700 mt-2">
+                    {{ total_crates_collected }} <span class="text-sm font-normal text-slate-500">crates</span>
+                </div>
+                <p class="text-xs text-slate-500 mt-1">+ {{ total_loose_collected }} loose eggs</p>
             </div>
-            <p class="text-xs text-emerald-700 mt-1">+ {{ loose_in_stock }} loose eggs</p>
+
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                <span class="text-xs uppercase font-semibold text-slate-400">Total Crates Dispatched / Sold</span>
+                <div class="text-3xl font-extrabold text-slate-800 mt-2">
+                    {{ total_crates_sold }} <span class="text-sm font-normal text-slate-500">crates</span>
+                </div>
+                <p class="text-xs text-slate-500 mt-1">+ {{ total_loose_sold }} loose eggs</p>
+            </div>
+
+            <div class="bg-emerald-50 p-6 rounded-xl border border-emerald-200 shadow-sm">
+                <span class="text-xs uppercase font-semibold text-emerald-800">Current Stock on Hand</span>
+                <div class="text-3xl font-extrabold text-emerald-700 mt-2">
+                    {{ crates_in_stock }} <span class="text-sm font-normal text-emerald-600">crates ready</span>
+                </div>
+                <p class="text-xs text-emerald-700 mt-1">+ {{ loose_in_stock }} loose eggs</p>
+            </div>
         </div>
     </div>
 

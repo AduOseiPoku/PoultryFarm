@@ -36,7 +36,7 @@
                     {% if form.date.errors %}<p class="text-xs text-red-600 mt-1">{{ form.date.errors.0 }}</p>{% endif %}
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold uppercase text-gray-500 mb-1">Customer / Buyer Name *</label>
+                    <label class="block text-xs font-semibold uppercase text-gray-500 mb-1">Customer / Buyer Name (Optional)</label>
                     {{ form.customer_name }}
                     {% if form.customer_name.errors %}<p class="text-xs text-red-600 mt-1">{{ form.customer_name.errors.0 }}</p>{% endif %}
                 </div>
@@ -50,16 +50,22 @@
 
             <!-- Crates & Price Breakdown -->
             <div class="p-4 bg-emerald-50 rounded-xl border border-emerald-200 space-y-4">
-                <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-900 flex items-center gap-1.5">
-                    <i data-lucide="package" class="w-4 h-4"></i>
-                    Dispatch Quantity & Rate
-                </h3>
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-900 flex items-center gap-1.5">
+                        <i data-lucide="package" class="w-4 h-4"></i>
+                        Dispatch Quantity & Rate
+                    </h3>
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold {% if total_eggs_in_stock > 0 %}bg-emerald-200/80 text-emerald-900{% else %}bg-red-100 text-red-700{% endif %}">
+                        <i data-lucide="boxes" class="w-3.5 h-3.5"></i>
+                        In Stock: {{ crates_in_stock }} crates + {{ loose_in_stock }} loose ({{ total_eggs_in_stock }} eggs)
+                    </span>
+                </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-medium text-gray-700 mb-1">Crates Sold (30 eggs/cr) *</label>
                         {{ form.crates_sold }}
-                        {% if form.crates_sold.errors %}<p class="text-xs text-red-600 mt-1">{{ form.crates_sold.errors.0 }}</p>{% endif %}
+                        {% if form.crates_sold.errors %}<p class="text-xs text-red-600 mt-1 font-semibold">{{ form.crates_sold.errors.0 }}</p>{% endif %}
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-gray-700 mb-1">Price per Crate (GH₵) *</label>
@@ -79,6 +85,12 @@
                         {{ form.price_per_loose_egg }}
                         {% if form.price_per_loose_egg.errors %}<p class="text-xs text-red-600 mt-1">{{ form.price_per_loose_egg.errors.0 }}</p>{% endif %}
                     </div>
+                </div>
+
+                <!-- Real-time Stock Overflow Alert -->
+                <div id="stock_warning" class="hidden p-3 rounded-lg bg-red-100 border border-red-300 text-xs text-red-800 flex items-start gap-2">
+                    <i data-lucide="alert-triangle" class="w-4 h-4 flex-shrink-0 text-red-600 mt-0.5"></i>
+                    <div id="stock_warning_text"></div>
                 </div>
 
                 <div class="bg-white p-3 rounded-lg border border-emerald-200 text-xs flex items-center justify-between">
@@ -128,23 +140,65 @@
     const priceLooseInp = document.getElementById('id_price_loose');
     const totalBillSpan = document.getElementById('calc_total_bill');
 
-    function recalcSale() {
+    const availableEggs = {{ total_eggs_in_stock|default:0 }};
+    const cratesInStock = {{ crates_in_stock|default:0 }};
+    const looseInStock = {{ loose_in_stock|default:0 }};
+    const stockWarning = document.getElementById('stock_warning');
+    const stockWarningText = document.getElementById('stock_warning_text');
+    const saveSaleBtn = document.getElementById('saveSaleBtn');
+
+    function checkStockAndRecalc() {
         const crates = parseFloat(cratesSoldInp ? cratesSoldInp.value : 0) || 0;
         const cratePrice = parseFloat(priceCrateInp ? priceCrateInp.value : 0) || 0;
         const loose = parseFloat(looseSoldInp ? looseSoldInp.value : 0) || 0;
         const loosePrice = parseFloat(priceLooseInp ? priceLooseInp.value : 0) || 0;
 
+        // Bill calculation
         const total = (crates * cratePrice) + (loose * loosePrice);
         if (totalBillSpan) totalBillSpan.textContent = 'GH₵' + total.toFixed(2);
+
+        // Stock check
+        const requestedEggs = (crates * 30) + loose;
+        if (requestedEggs > availableEggs) {
+            if (stockWarning && stockWarningText) {
+                stockWarning.classList.remove('hidden');
+                stockWarningText.innerHTML = `<strong>Insufficient Stock!</strong> You are attempting to sell <strong>${crates} crates and ${loose} loose eggs (${requestedEggs} eggs total)</strong>, but only <strong>${cratesInStock} crates and ${looseInStock} loose eggs (${availableEggs} eggs total)</strong> are available in stock.`;
+            }
+            if (saveSaleBtn) {
+                saveSaleBtn.disabled = true;
+                saveSaleBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+            if (cratesSoldInp) cratesSoldInp.classList.add('border-red-500', 'bg-red-50');
+            if (looseSoldInp) looseSoldInp.classList.add('border-red-500', 'bg-red-50');
+        } else {
+            if (stockWarning) {
+                stockWarning.classList.add('hidden');
+            }
+            if (saveSaleBtn) {
+                saveSaleBtn.disabled = false;
+                saveSaleBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+            if (cratesSoldInp) cratesSoldInp.classList.remove('border-red-500', 'bg-red-50');
+            if (looseSoldInp) looseSoldInp.classList.remove('border-red-500', 'bg-red-50');
+        }
     }
 
     [cratesSoldInp, priceCrateInp, looseSoldInp, priceLooseInp].forEach(inp => {
-        if(inp) inp.addEventListener('input', recalcSale);
+        if(inp) inp.addEventListener('input', checkStockAndRecalc);
     });
 
-    recalcSale();
+    checkStockAndRecalc();
 
     function handleSaleSubmit(form, e) {
+        const crates = parseFloat(cratesSoldInp ? cratesSoldInp.value : 0) || 0;
+        const loose = parseFloat(looseSoldInp ? looseSoldInp.value : 0) || 0;
+        const requestedEggs = (crates * 30) + loose;
+
+        if (requestedEggs > availableEggs) {
+            e.preventDefault();
+            return false;
+        }
+
         const btn = document.getElementById('saveSaleBtn');
         const btnText = document.getElementById('saleBtnText');
         const btnIcon = document.getElementById('saleBtnIcon');

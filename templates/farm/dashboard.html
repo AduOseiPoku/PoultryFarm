@@ -94,11 +94,43 @@
                     {{ crates_in_stock }} <span class="text-sm font-normal text-slate-500">crates ready</span>
                 </div>
                 <div class="text-xs text-slate-500 mt-1">
-                    Today's Sales: {{ today_crates_sold }} crates (GH₵{{ today_revenue }})
+                    + {{ loose_in_stock }} loose &bull; Today's Sales: {{ today_crates_sold }} cr (GH₵{{ today_revenue }})
                 </div>
             </div>
         </div>
 
+    </div>
+
+    <!-- Feed Storehouse Quick Overview Banner -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="flex items-center space-x-3">
+            <span class="p-3 {% if is_feed_low %}bg-amber-100 text-amber-700{% else %}bg-slate-100 text-slate-700{% endif %} rounded-xl flex-shrink-0">
+                <i data-lucide="archive" class="w-6 h-6"></i>
+            </span>
+            <div>
+                <div class="flex items-center gap-2">
+                    <h3 class="font-bold text-slate-900 text-sm">Feed Storehouse Balance:</h3>
+                    <span class="text-base font-extrabold {% if is_feed_low %}text-amber-700{% else %}text-emerald-700{% endif %}">{{ current_feed_bags }} bags remaining</span>
+                    {% if is_feed_low %}
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 uppercase">Low Stock</span>
+                    {% endif %}
+                </div>
+                <p class="text-xs text-slate-500 mt-0.5">
+                    Today Fed: <span class="font-semibold text-slate-700">{{ today_feed_kg }} kg</span> &bull; 
+                    Intake: <span class="font-semibold text-slate-700">{{ today_grams_per_bird }} g/bird</span> &bull; 
+                    Feeding Cost: <span class="font-semibold text-slate-700">${{ today_feed_cost }}</span> &bull; 
+                    Net Margin (Egg Sales - Feed): <span class="font-bold {% if today_net_margin >= 0 %}text-emerald-700{% else %}text-red-600{% endif %}">${{ today_net_margin }}</span>
+                </p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-2 flex-shrink-0">
+            <a href="{% url 'feed_distribute_create' %}" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-medium text-xs rounded-lg shadow-sm">
+                + Feed Shed
+            </a>
+            <a href="{% url 'feed_dashboard' %}" class="px-3 py-1.5 border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium text-xs rounded-lg shadow-sm">
+                View Feed Ledger &rarr;
+            </a>
+        </div>
     </div>
 
     <!-- Chart: 7-Day Production vs Sales Trend -->
@@ -130,7 +162,7 @@
                 <table class="w-full text-left text-xs">
                     <thead class="bg-slate-50 text-slate-500 uppercase font-semibold">
                         <tr>
-                            <th class="p-3">Date</th>
+                            <th class="p-3">Date / Round</th>
                             <th class="p-3">Flock</th>
                             <th class="p-3">Crates</th>
                             <th class="p-3">Broken</th>
@@ -140,12 +172,15 @@
                     <tbody class="divide-y divide-slate-100">
                         {% for log in recent_logs %}
                         <tr class="hover:bg-slate-50">
-                            <td class="p-3 font-medium text-slate-900">{{ log.date|date:"M d, Y" }}</td>
-                            <td class="p-3 text-slate-600">{{ log.flock.name }}</td>
+                            <td class="p-3 font-medium text-slate-900">
+                                <div>{{ log.date|date:"M d, Y" }}</div>
+                                <span class="text-[10px] text-slate-400 uppercase font-semibold">{{ log.get_collection_round_display }}</span>
+                            </td>
+                            <td class="p-3 text-slate-600 font-medium">{{ log.flock.name }}</td>
                             <td class="p-3 font-semibold text-slate-800">{{ log.crates_collected }} cr + {{ log.loose_eggs_collected }}</td>
                             <td class="p-3 text-red-600 font-medium">{{ log.broken_eggs }}</td>
                             <td class="p-3">
-                                <span class="px-2 py-0.5 rounded text-2xl font-bold {% if log.breakage_percentage > 2.0 %}bg-red-100 text-red-800{% else %}bg-slate-100 text-slate-700{% endif %}" style="font-size: 0.75rem;">
+                                <span class="px-2 py-0.5 rounded text-xs font-semibold {% if log.breakage_percentage > 2.0 %}bg-red-100 text-red-800{% else %}bg-slate-100 text-slate-700{% endif %}">
                                     {{ log.breakage_percentage }}%
                                 </span>
                             </td>
@@ -184,8 +219,11 @@
                         {% for sale in recent_sales %}
                         <tr class="hover:bg-slate-50">
                             <td class="p-3 font-medium text-slate-900">{{ sale.date|date:"M d, Y" }}</td>
-                            <td class="p-3 text-slate-600 font-medium">{{ sale.customer_name }}</td>
-                            <td class="p-3 font-semibold text-slate-800">{{ sale.crates_sold }} cr</td>
+                            <td class="p-3 text-slate-600 font-medium">{{ sale.customer_name|default:"Walk-in Customer" }}</td>
+                            <td class="p-3 font-semibold text-slate-800">
+                                {{ sale.crates_sold }} cr
+                                {% if sale.loose_eggs_sold > 0 %}<span class="text-xs text-slate-400 font-normal">+ {{ sale.loose_eggs_sold }}</span>{% endif %}
+                            </td>
                             <td class="p-3 text-slate-900 font-bold">GH₵{{ sale.total_amount }}</td>
                             <td class="p-3">
                                 {% if sale.payment_status == 'PAID' %}
@@ -213,55 +251,137 @@
 {% endblock %}
 
 {% block extra_js %}
-<!-- Chart.js loaded only on dashboard where chart is present -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    const labels = {{ chart_labels|safe }};
-    const cratesProduced = {{ chart_crates_produced|safe }};
-    const cratesSold = {{ chart_crates_sold|safe }};
+    function initProductionChart() {
+        const canvas = document.getElementById('productionChart');
+        if (!canvas) return;
 
-    const ctx = document.getElementById('productionChart').getContext('2d');
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [
-                {
-                    label: 'Crates Collected',
-                    data: cratesProduced,
-                    borderColor: '#d97706',
-                    backgroundColor: 'rgba(217, 119, 6, 0.1)',
-                    tension: 0.3,
-                    fill: true,
-                    borderWidth: 2
-                },
-                {
-                    label: 'Crates Sold',
-                    data: cratesSold,
-                    borderColor: '#059669',
-                    backgroundColor: 'transparent',
-                    borderDash: [5, 5],
-                    tension: 0.3,
-                    borderWidth: 2
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'top',
-                }
+        // Destroy previous Chart instance if re-initializing on HTMX swap
+        if (typeof Chart !== 'undefined') {
+            const existing = Chart.getChart(canvas);
+            if (existing) {
+                existing.destroy();
+            }
+        } else {
+            return;
+        }
+
+        const labels = {{ chart_labels|safe }};
+        const cratesProduced = {{ chart_crates_produced|safe }};
+        const cratesSold = {{ chart_crates_sold|safe }};
+        const brokenEggs = {{ chart_broken_eggs|safe }};
+
+        new Chart(canvas, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Crates Collected',
+                        data: cratesProduced,
+                        borderColor: '#d97706',
+                        backgroundColor: 'rgba(217, 119, 6, 0.1)',
+                        tension: 0.3,
+                        fill: true,
+                        borderWidth: 2,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Crates Sold',
+                        data: cratesSold,
+                        borderColor: '#059669',
+                        backgroundColor: 'transparent',
+                        borderDash: [5, 5],
+                        tension: 0.3,
+                        borderWidth: 2,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Broken Eggs',
+                        data: brokenEggs,
+                        borderColor: '#dc2626',
+                        backgroundColor: 'rgba(220, 38, 38, 0.05)',
+                        tension: 0.3,
+                        borderWidth: 1.5,
+                        borderDash: [2, 2],
+                        yAxisID: 'y1'
+                    }
+                ]
             },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        precision: 0
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) label += ': ';
+                                if (context.parsed.y !== null) {
+                                    if (context.datasetIndex === 2) {
+                                        label += context.parsed.y + ' eggs';
+                                    } else {
+                                        label += context.parsed.y + ' crates';
+                                    }
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Crates'
+                        },
+                        ticks: {
+                            precision: 0
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Broken Eggs'
+                        },
+                        grid: {
+                            drawOnChartArea: false,
+                        },
+                        ticks: {
+                            precision: 0
+                        }
                     }
                 }
             }
+        });
+    }
+
+    // Initialize immediately / on DOMContentLoaded
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initProductionChart);
+    } else {
+        initProductionChart();
+    }
+
+    // Re-initialize chart when HTMX swaps content back to dashboard
+    document.body.addEventListener('htmx:afterSwap', function(e) {
+        if (document.getElementById('productionChart')) {
+            initProductionChart();
         }
     });
 </script>

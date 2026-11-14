@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} - EggFarm Monitor{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="p-6 bg-amber-600 text-white flex items-center justify-between">
+            <div>
+                <h1 class="text-xl font-bold">{{ title }}</h1>
+                <p class="text-xs text-amber-100 mt-1">Record feed bags distributed to a bird shed.</p>
+            </div>
+            <i data-lucide="utensils" class="w-8 h-8 text-amber-200"></i>
+        </div>
+
+        <form method="post" id="distributeForm" class="p-6 space-y-5" onsubmit="handleDistSubmit(this, event)">
+            {% csrf_token %}
+
+            {% if form.errors %}
+            <div class="p-4 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">
+                <p class="font-bold mb-1">Please correct the following errors:</p>
+                <ul class="list-disc list-inside space-y-1">
+                    {% for field in form %}
+                        {% for error in field.errors %}
+                            <li><span class="font-semibold">{{ field.label }}:</span> {{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-gray-500 mb-1">Feeding Date *</label>
+                    {{ form.date }}
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-gray-500 mb-1">Shed / Flock *</label>
+                    {{ form.flock }}
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-gray-500 mb-1">Session *</label>
+                    {{ form.session }}
+                </div>
+            </div>
+
+            <!-- Feed Quantity Breakdown -->
+            <div class="p-4 bg-amber-50 rounded-xl border border-amber-200 space-y-4">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
+                    <i data-lucide="package" class="w-4 h-4"></i>
+                    Quantity & Bag Size
+                </h3>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Bags Fed *</label>
+                        {{ form.bags_fed }}
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Bag Weight (kg) *</label>
+                        {{ form.weight_per_bag_kg }}
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Feed Type / Brand</label>
+                        {{ form.feed_type }}
+                    </div>
+                </div>
+
+                <!-- Live Auto-Calculation Box -->
+                <div class="bg-white p-3 rounded-lg border border-amber-200 text-xs flex flex-wrap items-center justify-between gap-3 text-gray-700">
+                    <div>
+                        Total Weight Fed: <span id="calc_total_kg" class="font-bold text-amber-700">0.0 kg</span>
+                    </div>
+                    <div>
+                        Cost Applied: <span id="calc_est_cost" class="font-bold text-gray-900">$0.00</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-gray-500 mb-1">Cost Per Bag ($)</label>
+                    {{ form.cost_per_bag }}
+                    <span class="text-[11px] text-gray-400 mt-1 block">Auto-pre-filled from latest purchase; override if needed.</span>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-gray-500 mb-1">Observations / Notes (Optional)</label>
+                    {{ form.notes }}
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end space-x-3 pt-3 border-t border-gray-200">
+                <a href="{% url 'feed_dashboard' %}" class="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50">Cancel</a>
+                <button type="submit" id="saveDistBtn" class="inline-flex items-center justify-center px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-medium rounded-lg text-sm shadow-sm transition disabled:opacity-75 disabled:cursor-not-allowed">
+                    <span id="distBtnIcon" class="mr-1.5"><i data-lucide="check" class="w-4 h-4"></i></span>
+                    <span id="distBtnText">Record Feeding</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const bagsInp = document.getElementById('id_bags_fed');
+    const weightInp = document.getElementById('id_dist_weight');
+    const costInp = document.getElementById('id_dist_cost');
+    const totalKgSpan = document.getElementById('calc_total_kg');
+    const costSpan = document.getElementById('calc_est_cost');
+
+    function recalcFeeding() {
+        const bags = parseFloat(bagsInp ? bagsInp.value : 0) || 0;
+        const weight = parseFloat(weightInp ? weightInp.value : 50) || 50;
+        const cost = parseFloat(costInp ? costInp.value : 0) || 0;
+
+        const totalKg = bags * weight;
+        const totalCost = bags * cost;
+
+        if (totalKgSpan) totalKgSpan.textContent = totalKg.toFixed(1) + ' kg';
+        if (costSpan) costSpan.textContent = '$' + totalCost.toFixed(2);
+    }
+
+    [bagsInp, weightInp, costInp].forEach(inp => {
+        if(inp) inp.addEventListener('input', recalcFeeding);
+    });
+
+    recalcFeeding();
+
+    function handleDistSubmit(form, e) {
+        const btn = document.getElementById('saveDistBtn');
+        const btnText = document.getElementById('distBtnText');
+        const btnIcon = document.getElementById('distBtnIcon');
+
+        if (btn) {
+            btn.disabled = true;
+            btnText.textContent = 'Recording Feeding...';
+            btnIcon.innerHTML = '<svg class="animate-spin h-4 w-4 text-white inline-block mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>';
+        }
+    }
+</script>
+{% endblock %}

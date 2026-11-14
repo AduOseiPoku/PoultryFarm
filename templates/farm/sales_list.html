@@ -69,7 +69,7 @@
                     <tr class="hover:bg-gray-50 transition">
                         <td class="p-4 font-semibold text-gray-900">{{ sale.date|date:"M d, Y" }}</td>
                         <td class="p-4 font-medium text-gray-800">
-                            {{ sale.customer_name }}
+                            {{ sale.customer_name|default:"Walk-in Customer" }}
                             {% if sale.customer_phone %}<span class="text-xs text-gray-400 block">{{ sale.customer_phone }}</span>{% endif %}
                         </td>
                         <td class="p-4 font-bold text-amber-700">{{ sale.crates_sold }} crates</td>

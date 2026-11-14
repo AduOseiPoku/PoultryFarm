@@ -17,8 +17,13 @@ urlpatterns = [
     path('sales/', views.sales_list, name='sales_list'),
     path('sales/add/', views.sales_create, name='sales_create'),
 
-    # Inventory
+    # Egg Inventory
     path('inventory/', views.inventory_view, name='inventory'),
+
+    # Feed Management & Inventory
+    path('feed/', views.feed_dashboard, name='feed_dashboard'),
+    path('feed/distribute/', views.feed_distribute_create, name='feed_distribute_create'),
+    path('feed/purchase/', views.feed_purchase_create, name='feed_purchase_create'),
 
     # Pricing & Farm Settings
     path('settings/', views.farm_settings_view, name='farm_settings'),

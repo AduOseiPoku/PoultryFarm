@@ -19,14 +19,17 @@ class FarmSetting(models.Model):
         help_text="Default selling price per individual loose egg"
     )
     farm_name = models.CharField(max_length=150, default="EggFarm Pro")
+    low_feed_threshold_bags = models.PositiveIntegerField(
+        default=20,
+        help_text="Alert manager when feed stock drops below this number of bags"
+    )
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Farm Settings (Crate: GH₵{self.default_price_per_crate})"
+        return f"Farm Settings (Crate: ${self.default_price_per_crate})"
 
     @classmethod
     def get_settings(cls):
-        """Returns the singleton settings instance, creating it if it doesn't exist."""
         setting, _ = cls.objects.get_or_create(id=1)
         return setting
 
@@ -152,7 +155,7 @@ class EggSale(models.Model):
     ]
 
     date = models.DateField(default=timezone.now, db_index=True)
-    customer_name = models.CharField(max_length=150, blank=True, default='', help_text="Buyer name or store (optional)")
+    customer_name = models.CharField(max_length=150, help_text="Buyer name or store")
     customer_phone = models.CharField(max_length=20, blank=True, null=True)
     
     crates_sold = models.PositiveIntegerField(default=0, help_text="Number of crates (30 eggs/crate)")
@@ -176,8 +179,7 @@ class EggSale(models.Model):
         ]
 
     def __str__(self):
-        buyer = self.customer_name if self.customer_name else "Walk-in Buyer"
-        return f"{self.date} - {buyer} ({self.crates_sold} crates)"
+        return f"{self.date} - {self.customer_name} ({self.crates_sold} crates)"
 
     @property
     def balance_due(self):
@@ -195,4 +197,83 @@ class EggSale(models.Model):
         else:
             self.payment_status = 'UNPAID'
 
+        super().save(*args, **kwargs)
+
+
+class FeedPurchase(models.Model):
+    """Stock-In: Feed shipments delivered to the farm storehouse."""
+    FEED_TYPES = [
+        ('LAYER_MASH', 'Layer Mash'),
+        ('LAYER_PELLETS', 'Layer Pellets'),
+        ('LAYER_PHASE1', 'Layer Phase 1 (Peak)'),
+        ('LAYER_PHASE2', 'Layer Phase 2'),
+        ('PRE_LAY', 'Pre-Lay Mash'),
+        ('OTHER', 'Other / Custom Feed'),
+    ]
+
+    date = models.DateField(default=timezone.now, db_index=True)
+    supplier_name = models.CharField(max_length=150, help_text="Feed Mill or Supplier")
+    feed_type = models.CharField(max_length=30, choices=FEED_TYPES, default='LAYER_MASH')
+    bags_purchased = models.PositiveIntegerField(help_text="Bags received")
+    weight_per_bag_kg = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal('50.00'), help_text="Bag weight in kg")
+    cost_per_bag = models.DecimalField(max_digits=10, decimal_places=2, help_text="Price per bag ($)")
+    total_cost = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+    notes = models.CharField(max_length=200, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-date', '-created_at']
+
+    def __str__(self):
+        return f"{self.date} - {self.supplier_name} ({self.bags_purchased} bags)"
+
+    def save(self, *args, **kwargs):
+        self.total_cost = Decimal(self.bags_purchased) * Decimal(self.cost_per_bag)
+        super().save(*args, **kwargs)
+
+
+class FeedDistribution(models.Model):
+    """Stock-Out: Feed taken from the storehouse and distributed to bird sheds."""
+    SESSION_CHOICES = [
+        ('MORNING', 'Morning Feeding'),
+        ('AFTERNOON', 'Afternoon Feeding'),
+        ('EVENING', 'Evening Feeding'),
+        ('FULL_DAY', 'Full Day Distribution'),
+    ]
+
+    date = models.DateField(default=timezone.now, db_index=True)
+    flock = models.ForeignKey(Flock, on_delete=models.CASCADE, related_name='feedings')
+    session = models.CharField(max_length=15, choices=SESSION_CHOICES, default='MORNING')
+    feed_type = models.CharField(max_length=30, default='LAYER_MASH')
+    bags_fed = models.DecimalField(max_digits=6, decimal_places=2, help_text="e.g. 2.0 or 2.5 bags")
+    weight_per_bag_kg = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal('50.00'), help_text="Weight per bag in kg")
+    total_kg_fed = models.DecimalField(max_digits=8, decimal_places=2, default=Decimal('0.00'))
+    cost_per_bag = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), help_text="Cost applied per bag")
+    total_cost = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+    notes = models.CharField(max_length=200, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-date', '-created_at']
+
+    def __str__(self):
+        return f"{self.date} - {self.flock.name} ({self.bags_fed} bags)"
+
+    @property
+    def grams_per_bird(self):
+        """Grams of feed consumed per live bird: (total_kg * 1000) / live_birds"""
+        if self.flock.current_birds > 0:
+            return round((float(self.total_kg_fed) * 1000) / self.flock.current_birds, 1)
+        return 0.0
+
+    def save(self, *args, **kwargs):
+        self.total_kg_fed = Decimal(self.bags_fed) * Decimal(self.weight_per_bag_kg)
+        
+        # If cost_per_bag wasn't manually set, grab the latest cost from FeedPurchase
+        if self.cost_per_bag == Decimal('0.00'):
+            last_purchase = FeedPurchase.objects.order_by('-date').first()
+            if last_purchase:
+                self.cost_per_bag = last_purchase.cost_per_bag
+
+        self.total_cost = Decimal(self.bags_fed) * Decimal(self.cost_per_bag)
         super().save(*args, **kwargs)

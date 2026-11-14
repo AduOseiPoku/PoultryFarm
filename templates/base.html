@@ -25,11 +25,45 @@
         .hover\:bg-amber-700:hover { background-color: #b45309; }
         .hover\:bg-amber-800:hover { background-color: #92400e; }
         .hover\:text-amber-800:hover { color: #92400e; }
+
+        /* Slate palette support for Tailwind 2.x */
+        .bg-slate-50 { background-color: #f8fafc; }
+        .bg-slate-100 { background-color: #f1f5f9; }
+        .bg-slate-200 { background-color: #e2e8f0; }
+        .bg-slate-800 { background-color: #1e293b; }
+        .text-slate-300 { color: #cbd5e1; }
+        .text-slate-400 { color: #94a3b8; }
+        .text-slate-500 { color: #64748b; }
+        .text-slate-600 { color: #475569; }
+        .text-slate-700 { color: #334155; }
+        .text-slate-800 { color: #1e293b; }
+        .text-slate-900 { color: #0f172a; }
+        .border-slate-100 { border-color: #f1f5f9; }
+        .border-slate-200 { border-color: #e2e8f0; }
+        .border-slate-300 { border-color: #cbd5e1; }
+        .divide-slate-100 > :not([hidden]) ~ :not([hidden]) { border-color: #f1f5f9; }
+        .hover\:bg-slate-50:hover { background-color: #f8fafc; }
+
+        /* Emerald palette support for Tailwind 2.x */
+        .bg-emerald-50 { background-color: #ecfdf5; }
+        .bg-emerald-100 { background-color: #d1fae5; }
+        .bg-emerald-200 { background-color: #a7f3d0; }
+        .bg-emerald-600 { background-color: #059669; }
+        .bg-emerald-700 { background-color: #047857; }
+        .text-emerald-100 { color: #d1fae5; }
+        .text-emerald-200 { color: #a7f3d0; }
+        .text-emerald-600 { color: #059669; }
+        .text-emerald-700 { color: #047857; }
+        .text-emerald-800 { color: #065f46; }
+        .text-emerald-900 { color: #064e3b; }
+        .border-emerald-200 { border-color: #a7f3d0; }
     </style>
     <!-- HTMX for SPA-like instant page transitions without white flashes -->
     <script src="https://unpkg.com/htmx.org@1.9.12" integrity="sha384-ujb1lZYygJmzgSwoxRggbCHcjc0rB2XoMVMf3CdUnKsZSsrM83mTmjqdgpST338Z" crossorigin="anonymous"></script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js for graphs (loaded in head so it is always available across HTMX swaps) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body hx-boost="true" class="bg-gray-50 text-gray-800 antialiased min-h-screen flex flex-col font-sans">
 
@@ -57,6 +91,9 @@
                     <a href="{% url 'inventory' %}" class="px-3 py-2 rounded-md text-sm font-medium hover:bg-amber-700 transition {% if request.resolver_match.url_name == 'inventory' %}bg-amber-700{% endif %}">
                         Egg Room Stock
                     </a>
+                    <a href="{% url 'feed_dashboard' %}" class="px-3 py-2 rounded-md text-sm font-medium hover:bg-amber-700 transition {% if 'feed' in request.resolver_match.url_name %}bg-amber-700{% endif %}">
+                        Feed Store
+                    </a>
                     <a href="{% url 'flock_list' %}" class="px-3 py-2 rounded-md text-sm font-medium hover:bg-amber-700 transition {% if 'flock' in request.resolver_match.url_name %}bg-amber-700{% endif %}">
                         Flocks / Sheds
                     </a>
@@ -83,6 +120,7 @@
             <a href="{% url 'log_list' %}" class="px-2.5 py-1 rounded whitespace-nowrap {% if 'log' in request.resolver_match.url_name %}bg-amber-800 font-bold{% endif %}">Daily Logs</a>
             <a href="{% url 'sales_list' %}" class="px-2.5 py-1 rounded whitespace-nowrap {% if 'sales' in request.resolver_match.url_name %}bg-amber-800 font-bold{% endif %}">Sales</a>
             <a href="{% url 'inventory' %}" class="px-2.5 py-1 rounded whitespace-nowrap {% if request.resolver_match.url_name == 'inventory' %}bg-amber-800 font-bold{% endif %}">Stock</a>
+            <a href="{% url 'feed_dashboard' %}" class="px-2.5 py-1 rounded whitespace-nowrap {% if 'feed' in request.resolver_match.url_name %}bg-amber-800 font-bold{% endif %}">Feed</a>
             <a href="{% url 'flock_list' %}" class="px-2.5 py-1 rounded whitespace-nowrap {% if 'flock' in request.resolver_match.url_name %}bg-amber-800 font-bold{% endif %}">Flocks</a>
             <a href="{% url 'farm_settings' %}" class="px-2.5 py-1 rounded whitespace-nowrap {% if 'settings' in request.resolver_match.url_name %}bg-amber-800 font-bold{% endif %}">Pricing</a>
         </div>

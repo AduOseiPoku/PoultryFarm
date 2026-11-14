@@ -59,3 +59,87 @@ class FarmViewsTests(TestCase):
         self.assertEqual(sale.total_amount, Decimal('200.00'))
         self.assertEqual(sale.balance_due, Decimal('100.00'))
         self.assertEqual(sale.payment_status, 'PARTIAL')
+
+    def test_egg_sale_optional_customer_name(self):
+        # Create some inventory first
+        DailyLog.objects.create(
+            flock=self.flock,
+            date=timezone.now().date(),
+            crates_collected=10,
+            loose_eggs_collected=0,
+            broken_eggs=0,
+        )
+
+        # Model creation without customer_name
+        sale = EggSale.objects.create(
+            date=timezone.now().date(),
+            customer_name="",
+            crates_sold=3,
+            price_per_crate=Decimal('40.00'),
+        )
+        self.assertEqual(sale.customer_name, "")
+        self.assertIn("Walk-in Buyer", str(sale))
+
+        # Form submission without customer_name
+        response = self.client.post(reverse('sales_create'), {
+            'date': timezone.now().date().isoformat(),
+            'customer_name': '',
+            'crates_sold': 2,
+            'price_per_crate': '40.00',
+            'loose_eggs_sold': '0',
+            'price_per_loose_egg': '0.00',
+            'amount_paid': '80.00',
+            'payment_method': 'CASH',
+        })
+        self.assertEqual(response.status_code, 302)
+        created_sale = EggSale.objects.filter(crates_sold=2).latest('created_at')
+        self.assertEqual(created_sale.customer_name, "")
+
+    def test_egg_sale_stock_validation_prevents_overselling(self):
+        # Setup: 5 crates in stock (150 eggs)
+        DailyLog.objects.create(
+            flock=self.flock,
+            date=timezone.now().date(),
+            crates_collected=5,
+            loose_eggs_collected=0,
+            broken_eggs=0,
+        )
+
+        # Try selling 6 crates (180 eggs) -> should fail
+        response = self.client.post(reverse('sales_create'), {
+            'date': timezone.now().date().isoformat(),
+            'customer_name': 'Greedy Buyer',
+            'crates_sold': 6,
+            'price_per_crate': '40.00',
+            'loose_eggs_sold': '0',
+            'price_per_loose_egg': '0.00',
+            'amount_paid': '0.00',
+            'payment_method': 'CASH',
+        })
+        self.assertEqual(response.status_code, 200)  # Re-rendered with form errors
+        self.assertFalse(EggSale.objects.filter(customer_name='Greedy Buyer').exists())
+        self.assertContains(response, "Insufficient stock")
+
+    def test_egg_sale_stock_validation_prevents_zero_eggs(self):
+        # Setup: 5 crates in stock
+        DailyLog.objects.create(
+            flock=self.flock,
+            date=timezone.now().date(),
+            crates_collected=5,
+            loose_eggs_collected=0,
+            broken_eggs=0,
+        )
+
+        # Try selling 0 crates and 0 loose eggs -> should fail
+        response = self.client.post(reverse('sales_create'), {
+            'date': timezone.now().date().isoformat(),
+            'customer_name': 'Zero Buyer',
+            'crates_sold': 0,
+            'price_per_crate': '40.00',
+            'loose_eggs_sold': '0',
+            'price_per_loose_egg': '0.00',
+            'amount_paid': '0.00',
+            'payment_method': 'CASH',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(EggSale.objects.filter(customer_name='Zero Buyer').exists())
