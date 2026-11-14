@@ -30,6 +30,21 @@ class FarmViewsTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Oppong Farms")
 
+    def test_mobile_drawer_navigation_present(self):
+        response = self.client.get(reverse('dashboard'))
+        self.assertEqual(response.status_code, 200)
+        # Ensure mobile drawer toggle button and inline SVG are present
+        self.assertContains(response, 'id="mobile-drawer-toggle"')
+        self.assertContains(response, 'onclick="openMobileDrawer()"')
+        # Ensure mobile drawer aside panel and backdrop are present
+        self.assertContains(response, 'id="mobile-drawer-panel"')
+        self.assertContains(response, 'id="mobile-drawer-backdrop"')
+        self.assertContains(response, 'id="mobile-drawer-close"')
+        self.assertContains(response, 'onclick="closeMobileDrawer()"')
+        # Ensure drawer JS functions are declared
+        self.assertContains(response, 'function openMobileDrawer()')
+        self.assertContains(response, 'function closeMobileDrawer()')
+
     def test_daily_log_calculation(self):
         log = DailyLog.objects.create(
             flock=self.flock,
