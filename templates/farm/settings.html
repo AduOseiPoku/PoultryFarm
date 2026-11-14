@@ -49,6 +49,22 @@
                 </div>
             </div>
 
+            <div class="p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-gray-700 mb-1">Feed Measuring Cup Weight (kg)</label>
+                    {{ form.feed_cup_weight_kg }}
+                    <span class="text-[11px] text-gray-500 mt-1 block">Weight of 1 full feeding cup / scoop in kg (default: 1.00 kg). Used to automatically calculate total kg and warehouse bag deductions when feeding.</span>
+                    {% if form.feed_cup_weight_kg.errors %}<p class="text-xs text-red-600 mt-1">{{ form.feed_cup_weight_kg.errors.0 }}</p>{% endif %}
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-gray-500 mb-1">Low Feed Alert Threshold (Bags)</label>
+                    {{ form.low_feed_threshold_bags }}
+                    <span class="text-[11px] text-gray-500 mt-1 block">Warning banner displays on Feed Store when bags in stock fall below this number.</span>
+                    {% if form.low_feed_threshold_bags.errors %}<p class="text-xs text-red-600 mt-1">{{ form.low_feed_threshold_bags.errors.0 }}</p>{% endif %}
+                </div>
+            </div>
+
             <div class="flex items-center justify-between pt-3 border-t border-gray-200 text-xs text-gray-400">
                 <span>Last updated: {{ settings.updated_at|date:"M d, Y H:i" }}</span>
                 <button type="submit" class="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-medium rounded-lg text-sm shadow-sm transition">

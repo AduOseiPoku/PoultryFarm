@@ -28,7 +28,7 @@ class FarmViewsTests(TestCase):
     def test_dashboard_loads(self):
         response = self.client.get(reverse('dashboard'))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "EggFarm")
+        self.assertContains(response, "Oppong Farms")
 
     def test_daily_log_calculation(self):
         log = DailyLog.objects.create(
@@ -143,3 +143,19 @@ class FarmViewsTests(TestCase):
         })
         self.assertEqual(response.status_code, 200)
         self.assertFalse(EggSale.objects.filter(customer_name='Zero Buyer').exists())
+
+    def test_feed_distribution_in_cups(self):
+        from .models import FeedDistribution
+        response = self.client.post(reverse('feed_distribute_create'), {
+            'date': timezone.now().date().isoformat(),
+            'flock': self.flock.id,
+            'session': 'MORNING',
+            'cups_fed': '12.0',
+            'notes': 'Normal morning feeding',
+        })
+        self.assertEqual(response.status_code, 302)
+        dist = FeedDistribution.objects.latest('created_at')
+        self.assertEqual(dist.cups_fed, Decimal('12.0'))
+        self.assertEqual(dist.total_kg_fed, Decimal('12.00'))
+        self.assertEqual(dist.bags_fed, Decimal('0.24'))
+        self.assertEqual(dist.grams_per_bird, 12.0)

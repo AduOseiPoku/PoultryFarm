@@ -134,15 +134,16 @@
 
 {% block extra_js %}
 <script>
+(function() {
     const cratesSoldInp = document.getElementById('id_crates_sold');
     const priceCrateInp = document.getElementById('id_price_crate');
     const looseSoldInp = document.getElementById('id_loose_sold');
     const priceLooseInp = document.getElementById('id_price_loose');
     const totalBillSpan = document.getElementById('calc_total_bill');
 
-    const availableEggs = {{ total_eggs_in_stock|default:0 }};
-    const cratesInStock = {{ crates_in_stock|default:0 }};
-    const looseInStock = {{ loose_in_stock|default:0 }};
+    const availableEggs = parseInt("{{ total_eggs_in_stock|default:0 }}", 10) || 0;
+    const cratesInStock = parseInt("{{ crates_in_stock|default:0 }}", 10) || 0;
+    const looseInStock = parseInt("{{ loose_in_stock|default:0 }}", 10) || 0;
     const stockWarning = document.getElementById('stock_warning');
     const stockWarningText = document.getElementById('stock_warning_text');
     const saveSaleBtn = document.getElementById('saveSaleBtn');
@@ -189,13 +190,13 @@
 
     checkStockAndRecalc();
 
-    function handleSaleSubmit(form, e) {
+    window.handleSaleSubmit = function(form, e) {
         const crates = parseFloat(cratesSoldInp ? cratesSoldInp.value : 0) || 0;
         const loose = parseFloat(looseSoldInp ? looseSoldInp.value : 0) || 0;
         const requestedEggs = (crates * 30) + loose;
 
         if (requestedEggs > availableEggs) {
-            e.preventDefault();
+            if (e) e.preventDefault();
             return false;
         }
 
@@ -208,6 +209,7 @@
             btnText.textContent = 'Saving Sale...';
             btnIcon.innerHTML = '<svg class="animate-spin h-4 w-4 text-white inline-block mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>';
         }
-    }
+    };
+})();
 </script>
 {% endblock %}

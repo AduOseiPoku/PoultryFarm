@@ -132,7 +132,7 @@
                         <th class="p-4">Date</th>
                         <th class="p-4">Shed / Flock</th>
                         <th class="p-4">Session</th>
-                        <th class="p-4">Bags Fed</th>
+                        <th class="p-4">Feed Given</th>
                         <th class="p-4">Total Weight</th>
                         <th class="p-4">Intake (g/bird)</th>
                         <th class="p-4">Est. Cost</th>
@@ -149,7 +149,10 @@
                                 {{ dist.get_session_display }}
                             </span>
                         </td>
-                        <td class="p-4 font-bold text-amber-700">{{ dist.bags_fed }} bags</td>
+                        <td class="p-4">
+                            <div class="font-bold text-amber-700">{% if dist.cups_fed > 0 %}{{ dist.cups_fed }} cups{% else %}{{ dist.bags_fed }} bags{% endif %}</div>
+                            <span class="text-[11px] text-gray-400 font-normal">({{ dist.bags_fed }} bags deducted)</span>
+                        </td>
                         <td class="p-4 text-gray-600">{{ dist.total_kg_fed }} kg</td>
                         <td class="p-4">
                             <span class="px-2 py-0.5 rounded text-xs font-bold 

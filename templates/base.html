@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}EggFarm Pro - Layer Farm Manager{% endblock %}</title>
+    <title>{% block title %}Oppong Farms - Layer Farm Manager{% endblock %}</title>
     <!-- Precompiled CDN Stylesheet (Instant CSS parsing without client-side JIT runtime) -->
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <style>
@@ -57,6 +57,12 @@
         .text-emerald-800 { color: #065f46; }
         .text-emerald-900 { color: #064e3b; }
         .border-emerald-200 { border-color: #a7f3d0; }
+
+        /* Mobile Drawer slide-over utilities */
+        .translate-x-full { transform: translateX(100%); }
+        .translate-x-0 { transform: translateX(0); }
+        .drawer-backdrop { transition: opacity 0.3s ease-in-out; }
+        .drawer-panel { transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
     </style>
     <!-- HTMX for SPA-like instant page transitions without white flashes -->
     <script src="https://unpkg.com/htmx.org@1.9.12" integrity="sha384-ujb1lZYygJmzgSwoxRggbCHcjc0rB2XoMVMf3CdUnKsZSsrM83mTmjqdgpST338Z" crossorigin="anonymous"></script>
@@ -74,7 +80,7 @@
                 <div class="flex items-center space-x-3">
                     <a href="{% url 'dashboard' %}" class="flex items-center space-x-2 text-xl font-bold tracking-tight">
                         <span class="text-2xl">🥚</span>
-                        <span>EggFarm <span class="text-amber-200 font-normal">Monitor</span></span>
+                        <span>Oppong <span class="text-amber-200 font-normal">Farms</span></span>
                     </a>
                 </div>
 
@@ -102,29 +108,135 @@
                     </a>
                 </nav>
 
-                <div class="flex items-center space-x-3">
-                    <a href="{% url 'log_create' %}" class="inline-flex items-center space-x-1 bg-white text-amber-700 hover:bg-amber-50 font-semibold px-3 py-1.5 rounded-lg text-sm shadow-sm transition">
+                <div class="flex items-center space-x-2 sm:space-x-3">
+                    <a href="{% url 'log_create' %}" class="hidden sm:inline-flex items-center space-x-1 bg-white text-amber-700 hover:bg-amber-50 font-semibold px-3 py-1.5 rounded-lg text-sm shadow-sm transition">
                         <i data-lucide="plus-circle" class="w-4 h-4"></i>
                         <span>New Log</span>
                     </a>
-                    <a href="/admin/" target="_blank" hx-boost="false" class="text-amber-100 hover:text-white text-xs underline">
+                    <a href="/admin/" target="_blank" hx-boost="false" class="hidden md:inline-block text-amber-100 hover:text-white text-xs underline">
                         Admin
                     </a>
+
+                    <!-- Mobile Hamburger Button -->
+                    <button id="mobile-drawer-toggle" 
+                            type="button" 
+                            class="md:hidden p-2 rounded-lg text-amber-100 hover:text-white hover:bg-amber-700 focus:outline-none transition" 
+                            aria-label="Open Navigation Menu">
+                        <i data-lucide="menu" class="w-6 h-6"></i>
+                    </button>
                 </div>
             </div>
         </div>
-
-        <!-- Mobile Navigation Submenu -->
-        <div class="md:hidden flex overflow-x-auto px-4 py-2 bg-amber-700 space-x-2 text-xs">
-            <a href="{% url 'dashboard' %}" class="px-2.5 py-1 rounded whitespace-nowrap {% if request.resolver_match.url_name == 'dashboard' %}bg-amber-800 font-bold{% endif %}">Dashboard</a>
-            <a href="{% url 'log_list' %}" class="px-2.5 py-1 rounded whitespace-nowrap {% if 'log' in request.resolver_match.url_name %}bg-amber-800 font-bold{% endif %}">Daily Logs</a>
-            <a href="{% url 'sales_list' %}" class="px-2.5 py-1 rounded whitespace-nowrap {% if 'sales' in request.resolver_match.url_name %}bg-amber-800 font-bold{% endif %}">Sales</a>
-            <a href="{% url 'inventory' %}" class="px-2.5 py-1 rounded whitespace-nowrap {% if request.resolver_match.url_name == 'inventory' %}bg-amber-800 font-bold{% endif %}">Stock</a>
-            <a href="{% url 'feed_dashboard' %}" class="px-2.5 py-1 rounded whitespace-nowrap {% if 'feed' in request.resolver_match.url_name %}bg-amber-800 font-bold{% endif %}">Feed</a>
-            <a href="{% url 'flock_list' %}" class="px-2.5 py-1 rounded whitespace-nowrap {% if 'flock' in request.resolver_match.url_name %}bg-amber-800 font-bold{% endif %}">Flocks</a>
-            <a href="{% url 'farm_settings' %}" class="px-2.5 py-1 rounded whitespace-nowrap {% if 'settings' in request.resolver_match.url_name %}bg-amber-800 font-bold{% endif %}">Pricing</a>
-        </div>
     </header>
+
+    <!-- Mobile Slide-Over Navigation Drawer (Option B) -->
+    <!-- Dimmed Backdrop Overlay -->
+    <div id="mobile-drawer-backdrop" 
+         class="drawer-backdrop fixed inset-0 bg-black bg-opacity-40 z-40 opacity-0 pointer-events-none md:hidden" 
+         aria-hidden="true">
+    </div>
+
+    <!-- Drawer Panel: White Background + Orange Highlights -->
+    <aside id="mobile-drawer-panel" 
+           class="drawer-panel fixed top-0 right-0 bottom-0 w-72 max-w-[85vw] bg-white text-slate-800 z-50 border-l-4 border-amber-500 shadow-2xl flex flex-col translate-x-full md:hidden" 
+           aria-label="Mobile Navigation">
+        
+        <!-- Drawer Header with Warm Amber Tint -->
+        <div class="p-4 border-b border-amber-100 flex items-center justify-between bg-amber-50/70">
+            <div class="flex items-center space-x-2">
+                <span class="text-xl">🥚</span>
+                <div>
+                    <div class="font-bold text-sm text-slate-900 leading-tight">Oppong <span class="text-amber-600 font-semibold">Farms</span></div>
+                    <div class="text-[10px] text-amber-700 font-medium">Layer Farm Manager</div>
+                </div>
+            </div>
+            <button id="mobile-drawer-close" 
+                    type="button" 
+                    class="p-1.5 rounded-lg text-slate-400 hover:text-amber-700 hover:bg-amber-100 transition focus:outline-none" 
+                    aria-label="Close navigation menu">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- Navigation Links with Orange Highlights -->
+        <div class="flex-1 overflow-y-auto px-3 py-4 space-y-1.5 text-xs">
+            
+            <a href="{% url 'dashboard' %}" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium transition-all {% if request.resolver_match.url_name == 'dashboard' %}bg-amber-50 text-amber-900 font-bold border-l-4 border-amber-500 shadow-sm{% else %}text-slate-700 hover:bg-amber-50/80 hover:text-amber-900 hover:border-l-4 hover:border-amber-400{% endif %}">
+                <i data-lucide="layout-dashboard" class="w-4 h-4 {% if request.resolver_match.url_name == 'dashboard' %}text-amber-600{% else %}text-slate-400{% endif %}"></i>
+                <span>Dashboard</span>
+                {% if request.resolver_match.url_name == 'dashboard' %}
+                <span class="ml-auto text-[9px] bg-amber-200/80 text-amber-800 px-1.5 py-0.5 rounded font-bold">ACTIVE</span>
+                {% endif %}
+            </a>
+
+            <a href="{% url 'log_list' %}" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium transition-all {% if 'log' in request.resolver_match.url_name %}bg-amber-50 text-amber-900 font-bold border-l-4 border-amber-500 shadow-sm{% else %}text-slate-700 hover:bg-amber-50/80 hover:text-amber-900 hover:border-l-4 hover:border-amber-400{% endif %}">
+                <i data-lucide="clipboard-list" class="w-4 h-4 {% if 'log' in request.resolver_match.url_name %}text-amber-600{% else %}text-slate-400{% endif %}"></i>
+                <span>Daily Logs</span>
+                {% if 'log' in request.resolver_match.url_name %}
+                <span class="ml-auto text-[9px] bg-amber-200/80 text-amber-800 px-1.5 py-0.5 rounded font-bold">ACTIVE</span>
+                {% endif %}
+            </a>
+
+            <a href="{% url 'sales_list' %}" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium transition-all {% if 'sales' in request.resolver_match.url_name %}bg-amber-50 text-amber-900 font-bold border-l-4 border-amber-500 shadow-sm{% else %}text-slate-700 hover:bg-amber-50/80 hover:text-amber-900 hover:border-l-4 hover:border-amber-400{% endif %}">
+                <i data-lucide="shopping-cart" class="w-4 h-4 text-emerald-600"></i>
+                <span>Egg Sales</span>
+                {% if 'sales' in request.resolver_match.url_name %}
+                <span class="ml-auto text-[9px] bg-amber-200/80 text-amber-800 px-1.5 py-0.5 rounded font-bold">ACTIVE</span>
+                {% endif %}
+            </a>
+
+            <a href="{% url 'inventory' %}" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium transition-all {% if request.resolver_match.url_name == 'inventory' %}bg-amber-50 text-amber-900 font-bold border-l-4 border-amber-500 shadow-sm{% else %}text-slate-700 hover:bg-amber-50/80 hover:text-amber-900 hover:border-l-4 hover:border-amber-400{% endif %}">
+                <i data-lucide="boxes" class="w-4 h-4 text-slate-400"></i>
+                <span>Egg Room Stock</span>
+                {% if request.resolver_match.url_name == 'inventory' %}
+                <span class="ml-auto text-[9px] bg-amber-200/80 text-amber-800 px-1.5 py-0.5 rounded font-bold">ACTIVE</span>
+                {% endif %}
+            </a>
+
+            <a href="{% url 'feed_dashboard' %}" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium transition-all {% if 'feed' in request.resolver_match.url_name %}bg-amber-50 text-amber-900 font-bold border-l-4 border-amber-500 shadow-sm{% else %}text-slate-700 hover:bg-amber-50/80 hover:text-amber-900 hover:border-l-4 hover:border-amber-400{% endif %}">
+                <i data-lucide="wheat" class="w-4 h-4 text-slate-400"></i>
+                <span>Feed Store</span>
+                {% if 'feed' in request.resolver_match.url_name %}
+                <span class="ml-auto text-[9px] bg-amber-200/80 text-amber-800 px-1.5 py-0.5 rounded font-bold">ACTIVE</span>
+                {% endif %}
+            </a>
+
+            <a href="{% url 'flock_list' %}" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium transition-all {% if 'flock' in request.resolver_match.url_name %}bg-amber-50 text-amber-900 font-bold border-l-4 border-amber-500 shadow-sm{% else %}text-slate-700 hover:bg-amber-50/80 hover:text-amber-900 hover:border-l-4 hover:border-amber-400{% endif %}">
+                <i data-lucide="home" class="w-4 h-4 text-slate-400"></i>
+                <span>Flocks / Sheds</span>
+                {% if 'flock' in request.resolver_match.url_name %}
+                <span class="ml-auto text-[9px] bg-amber-200/80 text-amber-800 px-1.5 py-0.5 rounded font-bold">ACTIVE</span>
+                {% endif %}
+            </a>
+
+            <a href="{% url 'farm_settings' %}" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium transition-all {% if 'settings' in request.resolver_match.url_name %}bg-amber-50 text-amber-900 font-bold border-l-4 border-amber-500 shadow-sm{% else %}text-slate-700 hover:bg-amber-50/80 hover:text-amber-900 hover:border-l-4 hover:border-amber-400{% endif %}">
+                <i data-lucide="settings" class="w-4 h-4 text-slate-400"></i>
+                <span>Pricing</span>
+                {% if 'settings' in request.resolver_match.url_name %}
+                <span class="ml-auto text-[9px] bg-amber-200/80 text-amber-800 px-1.5 py-0.5 rounded font-bold">ACTIVE</span>
+                {% endif %}
+            </a>
+
+            <div class="pt-3 pb-1 border-t border-amber-100"></div>
+
+            <!-- Action Button in Drawer -->
+            <a href="{% url 'log_create' %}" class="flex items-center justify-center space-x-2 w-full py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl shadow-md shadow-amber-600/20 transition">
+                <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                <span>+ Log Today's Eggs</span>
+            </a>
+
+            <div class="pt-2 text-center">
+                <a href="/admin/" target="_blank" hx-boost="false" class="text-[11px] text-amber-700/70 hover:text-amber-800 font-medium underline">
+                    Django Admin &rarr;
+                </a>
+            </div>
+        </div>
+
+        <!-- Drawer Footer -->
+        <div class="p-3 border-t border-amber-100 bg-amber-50/40 text-[10px] text-amber-800/70 text-center font-medium">
+            Oppong Farms &copy; 2026 &bull; All records secured
+        </div>
+    </aside>
 
     <!-- Notification Messages -->
     {% if messages %}
@@ -147,12 +259,49 @@
 
     <!-- Footer -->
     <footer class="bg-white border-t border-gray-200 py-4 text-center text-xs text-gray-500 mt-auto">
-        <p>Egg-Laying Poultry Farm Monitoring System &copy; 2026. All daily records secured.</p>
+        <p>Oppong Farms Monitoring System &copy; 2026. All daily records secured.</p>
     </footer>
 
     <script>
+        function openMobileDrawer() {
+            const backdrop = document.getElementById('mobile-drawer-backdrop');
+            const panel = document.getElementById('mobile-drawer-panel');
+            if (!backdrop || !panel) return;
+            backdrop.classList.remove('opacity-0', 'pointer-events-none');
+            backdrop.classList.add('opacity-100', 'pointer-events-auto');
+            panel.classList.remove('translate-x-full');
+            panel.classList.add('translate-x-0');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeMobileDrawer() {
+            const backdrop = document.getElementById('mobile-drawer-backdrop');
+            const panel = document.getElementById('mobile-drawer-panel');
+            if (!backdrop || !panel) return;
+            backdrop.classList.remove('opacity-100', 'pointer-events-auto');
+            backdrop.classList.add('opacity-0', 'pointer-events-none');
+            panel.classList.remove('translate-x-0');
+            panel.classList.add('translate-x-full');
+            document.body.style.overflow = '';
+        }
+
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('#mobile-drawer-toggle')) {
+                openMobileDrawer();
+            } else if (e.target.closest('#mobile-drawer-close') || e.target.closest('#mobile-drawer-backdrop')) {
+                closeMobileDrawer();
+            }
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeMobileDrawer();
+            }
+        });
+
         lucide.createIcons();
         document.body.addEventListener('htmx:afterSwap', function() {
+            closeMobileDrawer();
             lucide.createIcons();
         });
     </script>

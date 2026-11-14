@@ -44,49 +44,37 @@
                 </div>
             </div>
 
-            <!-- Feed Quantity Breakdown -->
-            <div class="p-4 bg-amber-50 rounded-xl border border-amber-200 space-y-4">
-                <h3 class="text-xs font-bold uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
-                    <i data-lucide="package" class="w-4 h-4"></i>
-                    Quantity & Bag Size
-                </h3>
+            <!-- Feed Quantity in Cups -->
+            <div class="p-5 bg-amber-50 rounded-xl border border-amber-200 space-y-4">
+                <div class="flex items-center justify-between">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-amber-900">
+                        <i data-lucide="coffee" class="w-4 h-4 inline-block mr-1 text-amber-600"></i>
+                        Feed Given (Cups / Scoops) *
+                    </label>
+                    <span class="text-xs text-amber-700 bg-amber-100 px-2.5 py-1 rounded font-medium">
+                        Standard Cup: {{ cup_weight }} kg
+                    </span>
+                </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700 mb-1">Bags Fed *</label>
-                        {{ form.bags_fed }}
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700 mb-1">Bag Weight (kg) *</label>
-                        {{ form.weight_per_bag_kg }}
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700 mb-1">Feed Type / Brand</label>
-                        {{ form.feed_type }}
-                    </div>
+                <div class="max-w-xs">
+                    {{ form.cups_fed }}
+                    {% if form.cups_fed.errors %}<p class="text-xs text-red-600 mt-1">{{ form.cups_fed.errors.0 }}</p>{% endif %}
                 </div>
 
                 <!-- Live Auto-Calculation Box -->
                 <div class="bg-white p-3 rounded-lg border border-amber-200 text-xs flex flex-wrap items-center justify-between gap-3 text-gray-700">
                     <div>
-                        Total Weight Fed: <span id="calc_total_kg" class="font-bold text-amber-700">0.0 kg</span>
+                        Total Weight Fed: <span id="calc_total_kg" class="font-bold text-amber-700 text-sm">0.0 kg</span>
                     </div>
                     <div>
-                        Cost Applied: <span id="calc_est_cost" class="font-bold text-gray-900">$0.00</span>
+                        Warehouse Deduction: <span id="calc_est_bags" class="font-bold text-gray-800">0.00 bags</span>
                     </div>
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs font-semibold uppercase text-gray-500 mb-1">Cost Per Bag ($)</label>
-                    {{ form.cost_per_bag }}
-                    <span class="text-[11px] text-gray-400 mt-1 block">Auto-pre-filled from latest purchase; override if needed.</span>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold uppercase text-gray-500 mb-1">Observations / Notes (Optional)</label>
-                    {{ form.notes }}
-                </div>
+            <div>
+                <label class="block text-xs font-semibold uppercase text-gray-500 mb-1">Observations / Notes (Optional)</label>
+                {{ form.notes }}
             </div>
 
             <div class="flex items-center justify-end space-x-3 pt-3 border-t border-gray-200">
@@ -103,28 +91,23 @@
 
 {% block extra_js %}
 <script>
-    const bagsInp = document.getElementById('id_bags_fed');
-    const weightInp = document.getElementById('id_dist_weight');
-    const costInp = document.getElementById('id_dist_cost');
+    const cupsInp = document.getElementById('id_cups_fed');
     const totalKgSpan = document.getElementById('calc_total_kg');
-    const costSpan = document.getElementById('calc_est_cost');
+    const bagsSpan = document.getElementById('calc_est_bags');
+    const cupWeight = parseFloat("{{ cup_weight|default:'1.00' }}") || 1.0;
 
     function recalcFeeding() {
-        const bags = parseFloat(bagsInp ? bagsInp.value : 0) || 0;
-        const weight = parseFloat(weightInp ? weightInp.value : 50) || 50;
-        const cost = parseFloat(costInp ? costInp.value : 0) || 0;
-
-        const totalKg = bags * weight;
-        const totalCost = bags * cost;
+        const cups = parseFloat(cupsInp ? cupsInp.value : 0) || 0;
+        const totalKg = cups * cupWeight;
+        const totalBags = totalKg / 50.0;
 
         if (totalKgSpan) totalKgSpan.textContent = totalKg.toFixed(1) + ' kg';
-        if (costSpan) costSpan.textContent = '$' + totalCost.toFixed(2);
+        if (bagsSpan) bagsSpan.textContent = totalBags.toFixed(2) + ' bags';
     }
 
-    [bagsInp, weightInp, costInp].forEach(inp => {
-        if(inp) inp.addEventListener('input', recalcFeeding);
-    });
-
+    if (cupsInp) {
+        cupsInp.addEventListener('input', recalcFeeding);
+    }
     recalcFeeding();
 
     function handleDistSubmit(form, e) {

@@ -222,16 +222,21 @@ def feed_dashboard(request):
 
 
 def feed_distribute_create(request):
-    """Stock-Out: Record bags fed to a shed."""
+    """Stock-Out: Record cups fed to a shed."""
+    settings = FarmSetting.get_settings()
     if request.method == 'POST':
         form = FeedDistributionForm(request.POST)
         if form.is_valid():
             dist = form.save()
-            messages.success(request, f"Feeding recorded: {dist.bags_fed} bags fed to {dist.flock.name} ({dist.grams_per_bird} g/bird)!")
+            messages.success(request, f"Feeding recorded: {dist.cups_fed} cups ({dist.total_kg_fed} kg) fed to {dist.flock.name} ({dist.grams_per_bird} g/bird)!")
             return redirect('feed_dashboard')
     else:
         form = FeedDistributionForm()
-    return render(request, 'farm/feed_form.html', {'form': form, 'title': 'Record Shed Feeding (Stock-Out)'})
+    return render(request, 'farm/feed_form.html', {
+        'form': form, 
+        'title': 'Record Shed Feeding',
+        'cup_weight': settings.feed_cup_weight_kg,
+    })
 
 
 def feed_purchase_create(request):
