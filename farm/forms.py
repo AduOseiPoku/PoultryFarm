@@ -1,7 +1,18 @@
 from django import forms
-from .models import Flock, DailyLog, EggSale
+from .models import Flock, DailyLog, EggSale, FarmSetting
 from django.utils import timezone
 from decimal import Decimal
+
+class FarmSettingForm(forms.ModelForm):
+    class Meta:
+        model = FarmSetting
+        fields = ['farm_name', 'default_price_per_crate', 'default_price_per_loose_egg']
+        widgets = {
+            'farm_name': forms.TextInput(attrs={'class': 'w-full rounded-lg border-gray-300 focus:border-amber-500 focus:ring-amber-500 shadow-sm px-4 py-2 text-sm border', 'placeholder': 'EggFarm Pro'}),
+            'default_price_per_crate': forms.NumberInput(attrs={'class': 'w-full rounded-lg border-gray-300 focus:border-amber-500 focus:ring-amber-500 shadow-sm px-4 py-2 text-sm border', 'min': 0, 'step': '0.01'}),
+            'default_price_per_loose_egg': forms.NumberInput(attrs={'class': 'w-full rounded-lg border-gray-300 focus:border-amber-500 focus:ring-amber-500 shadow-sm px-4 py-2 text-sm border', 'min': 0, 'step': '0.01'}),
+        }
+
 
 class FlockForm(forms.ModelForm):
     class Meta:
@@ -40,7 +51,6 @@ class DailyLogForm(forms.ModelForm):
         if not self.initial.get('date'):
             self.initial['date'] = timezone.now().date()
         
-        # Auto-suggest collection round based on current hour
         current_hour = timezone.now().hour
         if not self.initial.get('collection_round'):
             if current_hour < 12:
@@ -50,7 +60,6 @@ class DailyLogForm(forms.ModelForm):
             else:
                 self.initial['collection_round'] = 'EVENING'
 
-        # Optional fields fallback safely
         self.fields['loose_eggs_collected'].required = False
         self.fields['broken_eggs'].required = False
         self.fields['mortality'].required = False
@@ -81,10 +90,10 @@ class EggSaleForm(forms.ModelForm):
         widgets = {
             'date': forms.DateInput(attrs={'class': 'w-full rounded-lg border-gray-300 focus:border-amber-500 focus:ring-amber-500 shadow-sm px-4 py-2 text-sm border', 'type': 'date'}),
             'customer_name': forms.TextInput(attrs={'class': 'w-full rounded-lg border-gray-300 focus:border-amber-500 focus:ring-amber-500 shadow-sm px-4 py-2 text-sm border', 'placeholder': 'Buyer / Customer Name'}),
-            'customer_phone': forms.TextInput(attrs={'class': 'w-full rounded-lg border-gray-300 focus:border-amber-500 focus:ring-amber-500 shadow-sm px-4 py-2 text-sm border', 'placeholder': 'e.g. +1 555-0123'}),
+            'customer_phone': forms.TextInput(attrs={'class': 'w-full rounded-lg border-gray-300 focus:border-amber-500 focus:ring-amber-500 shadow-sm px-4 py-2 text-sm border', 'placeholder': 'e.g. 024 123 4567'}),
             'crates_sold': forms.NumberInput(attrs={'class': 'w-full rounded-lg border-gray-300 focus:border-amber-500 focus:ring-amber-500 shadow-sm px-4 py-2 text-sm border', 'min': 0, 'id': 'id_crates_sold'}),
             'loose_eggs_sold': forms.NumberInput(attrs={'class': 'w-full rounded-lg border-gray-300 focus:border-amber-500 focus:ring-amber-500 shadow-sm px-4 py-2 text-sm border', 'min': 0, 'id': 'id_loose_sold', 'placeholder': '0'}),
-            'price_per_crate': forms.NumberInput(attrs={'class': 'w-full rounded-lg border-gray-300 focus:border-amber-500 focus:ring-amber-500 shadow-sm px-4 py-2 text-sm border', 'min': 0, 'step': '0.01', 'id': 'id_price_crate', 'placeholder': '0.00'}),
+            'price_per_crate': forms.NumberInput(attrs={'class': 'w-full rounded-lg border-gray-300 focus:border-amber-500 focus:ring-amber-500 shadow-sm px-4 py-2 text-sm border', 'min': 0, 'step': '0.01', 'id': 'id_price_crate'}),
             'price_per_loose_egg': forms.NumberInput(attrs={'class': 'w-full rounded-lg border-gray-300 focus:border-amber-500 focus:ring-amber-500 shadow-sm px-4 py-2 text-sm border', 'min': 0, 'step': '0.01', 'id': 'id_price_loose', 'placeholder': '0.00'}),
             'amount_paid': forms.NumberInput(attrs={'class': 'w-full rounded-lg border-gray-300 focus:border-amber-500 focus:ring-amber-500 shadow-sm px-4 py-2 text-sm border', 'min': 0, 'step': '0.01', 'id': 'id_amount_paid', 'placeholder': '0.00'}),
             'payment_method': forms.Select(attrs={'class': 'w-full rounded-lg border-gray-300 focus:border-amber-500 focus:ring-amber-500 shadow-sm px-4 py-2 text-sm border'}),
@@ -95,25 +104,42 @@ class EggSaleForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if not self.initial.get('date'):
             self.initial['date'] = timezone.now().date()
+
+        # Automatically fetch and pre-fill default crate price from FarmSetting
+        settings = FarmSetting.get_settings()
+        if not self.initial.get('price_per_crate'):
+            self.initial['price_per_crate'] = settings.default_price_per_crate
+        if not self.initial.get('price_per_loose_egg'):
+            self.initial['price_per_loose_egg'] = settings.default_price_per_loose_egg
         
         self.fields['customer_phone'].required = False
         self.fields['loose_eggs_sold'].required = False
+        self.fields['price_per_crate'].required = False
         self.fields['price_per_loose_egg'].required = False
         self.fields['amount_paid'].required = False
         self.fields['notes'].required = False
 
-        if not self.initial.get('price_per_loose_egg'):
-            self.initial['price_per_loose_egg'] = Decimal('0.00')
         if not self.initial.get('loose_eggs_sold'):
             self.initial['loose_eggs_sold'] = 0
         if not self.initial.get('amount_paid'):
             self.initial['amount_paid'] = Decimal('0.00')
 
+    def clean_price_per_crate(self):
+        price = self.cleaned_data.get('price_per_crate')
+        if price is None or price == '':
+            settings = FarmSetting.get_settings()
+            return settings.default_price_per_crate
+        return price
+
     def clean_loose_eggs_sold(self):
         return self.cleaned_data.get('loose_eggs_sold') or 0
 
     def clean_price_per_loose_egg(self):
-        return self.cleaned_data.get('price_per_loose_egg') or Decimal('0.00')
+        price = self.cleaned_data.get('price_per_loose_egg')
+        if price is None or price == '':
+            settings = FarmSetting.get_settings()
+            return settings.default_price_per_loose_egg
+        return price
 
     def clean_amount_paid(self):
         return self.cleaned_data.get('amount_paid') or Decimal('0.00')

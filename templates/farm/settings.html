@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block title %}Pricing & Farm Settings - EggFarm Monitor{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto space-y-6">
+    <div class="pb-2 border-b border-gray-200">
+        <h1 class="text-2xl font-bold text-gray-900">Farm & Pricing Settings</h1>
+        <p class="text-sm text-gray-500">Configure your default selling price for crates so it automatically pre-fills on every sale.</p>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="p-6 bg-slate-800 text-white flex items-center justify-between">
+            <div>
+                <h2 class="text-lg font-bold">Standard Egg Pricing</h2>
+                <p class="text-xs text-slate-300 mt-1">Set once. Sales forms will default to this price automatically.</p>
+            </div>
+            <i data-lucide="tag" class="w-8 h-8 text-amber-400"></i>
+        </div>
+
+        <form method="post" class="p-6 space-y-5">
+            {% csrf_token %}
+
+            {% if form.errors %}
+            <div class="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">
+                Please check the form fields for errors.
+            </div>
+            {% endif %}
+
+            <div>
+                <label class="block text-xs font-semibold uppercase text-gray-500 mb-1">Farm / Business Name</label>
+                {{ form.farm_name }}
+                {% if form.farm_name.errors %}<p class="text-xs text-red-600 mt-1">{{ form.farm_name.errors.0 }}</p>{% endif %}
+            </div>
+
+            <div class="p-4 bg-amber-50 rounded-xl border border-amber-200 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-amber-900 mb-1">Default Price per Full Crate ($) *</label>
+                    {{ form.default_price_per_crate }}
+                    <span class="text-[11px] text-amber-700 mt-1 block">Standard 30-egg tray/crate price used across daily customer sales.</span>
+                    {% if form.default_price_per_crate.errors %}<p class="text-xs text-red-600 mt-1">{{ form.default_price_per_crate.errors.0 }}</p>{% endif %}
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Default Price per Loose Egg ($)</label>
+                    {{ form.default_price_per_loose_egg }}
+                    <span class="text-[11px] text-gray-500 mt-1 block">Optional fallback price if selling single loose eggs.</span>
+                    {% if form.default_price_per_loose_egg.errors %}<p class="text-xs text-red-600 mt-1">{{ form.default_price_per_loose_egg.errors.0 }}</p>{% endif %}
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between pt-3 border-t border-gray-200 text-xs text-gray-400">
+                <span>Last updated: {{ settings.updated_at|date:"M d, Y H:i" }}</span>
+                <button type="submit" class="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-medium rounded-lg text-sm shadow-sm transition">
+                    Save Pricing Settings
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

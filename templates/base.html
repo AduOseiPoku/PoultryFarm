@@ -60,6 +60,9 @@
                     <a href="{% url 'flock_list' %}" class="px-3 py-2 rounded-md text-sm font-medium hover:bg-amber-700 transition {% if 'flock' in request.resolver_match.url_name %}bg-amber-700{% endif %}">
                         Flocks / Sheds
                     </a>
+                    <a href="{% url 'farm_settings' %}" class="px-3 py-2 rounded-md text-sm font-medium hover:bg-amber-700 transition {% if 'settings' in request.resolver_match.url_name %}bg-amber-700{% endif %}">
+                        Pricing
+                    </a>
                 </nav>
 
                 <div class="flex items-center space-x-3">
@@ -81,6 +84,7 @@
             <a href="{% url 'sales_list' %}" class="px-2.5 py-1 rounded whitespace-nowrap {% if 'sales' in request.resolver_match.url_name %}bg-amber-800 font-bold{% endif %}">Sales</a>
             <a href="{% url 'inventory' %}" class="px-2.5 py-1 rounded whitespace-nowrap {% if request.resolver_match.url_name == 'inventory' %}bg-amber-800 font-bold{% endif %}">Stock</a>
             <a href="{% url 'flock_list' %}" class="px-2.5 py-1 rounded whitespace-nowrap {% if 'flock' in request.resolver_match.url_name %}bg-amber-800 font-bold{% endif %}">Flocks</a>
+            <a href="{% url 'farm_settings' %}" class="px-2.5 py-1 rounded whitespace-nowrap {% if 'settings' in request.resolver_match.url_name %}bg-amber-800 font-bold{% endif %}">Pricing</a>
         </div>
     </header>
 

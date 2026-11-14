@@ -62,7 +62,7 @@
                         {% if form.crates_sold.errors %}<p class="text-xs text-red-600 mt-1">{{ form.crates_sold.errors.0 }}</p>{% endif %}
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-gray-700 mb-1">Price per Crate ($) *</label>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Price per Crate (GH₵) *</label>
                         {{ form.price_per_crate }}
                         {% if form.price_per_crate.errors %}<p class="text-xs text-red-600 mt-1">{{ form.price_per_crate.errors.0 }}</p>{% endif %}
                     </div>
@@ -75,7 +75,7 @@
                         {% if form.loose_eggs_sold.errors %}<p class="text-xs text-red-600 mt-1">{{ form.loose_eggs_sold.errors.0 }}</p>{% endif %}
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-gray-700 mb-1">Price per Loose Egg ($)</label>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Price per Loose Egg (GH₵)</label>
                         {{ form.price_per_loose_egg }}
                         {% if form.price_per_loose_egg.errors %}<p class="text-xs text-red-600 mt-1">{{ form.price_per_loose_egg.errors.0 }}</p>{% endif %}
                     </div>
@@ -83,14 +83,14 @@
 
                 <div class="bg-white p-3 rounded-lg border border-emerald-200 text-xs flex items-center justify-between">
                     <span class="text-gray-600 font-medium">Estimated Bill Total:</span>
-                    <span id="calc_total_bill" class="font-bold text-lg text-emerald-700">$0.00</span>
+                    <span id="calc_total_bill" class="font-bold text-lg text-emerald-700">GH₵0.00</span>
                 </div>
             </div>
 
             <!-- Payment details -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-xs font-semibold uppercase text-gray-500 mb-1">Amount Paid ($)</label>
+                    <label class="block text-xs font-semibold uppercase text-gray-500 mb-1">Amount Paid (GH₵)</label>
                     {{ form.amount_paid }}
                     <span class="text-[11px] text-gray-400 mt-1 block">Leave blank or 0 if customer is buying on credit.</span>
                     {% if form.amount_paid.errors %}<p class="text-xs text-red-600 mt-1">{{ form.amount_paid.errors.0 }}</p>{% endif %}
@@ -135,7 +135,7 @@
         const loosePrice = parseFloat(priceLooseInp ? priceLooseInp.value : 0) || 0;
 
         const total = (crates * cratePrice) + (loose * loosePrice);
-        if (totalBillSpan) totalBillSpan.textContent = '$' + total.toFixed(2);
+        if (totalBillSpan) totalBillSpan.textContent = 'GH₵' + total.toFixed(2);
     }
 
     [cratesSoldInp, priceCrateInp, looseSoldInp, priceLooseInp].forEach(inp => {

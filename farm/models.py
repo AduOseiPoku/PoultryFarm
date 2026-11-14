@@ -4,6 +4,33 @@ from django.db.models.functions import Coalesce
 from django.utils import timezone
 from decimal import Decimal
 
+class FarmSetting(models.Model):
+    """Stores global farm configurations such as default egg pricing."""
+    default_price_per_crate = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        default=Decimal('40.00'),
+        help_text="Default selling price per full crate (30 eggs)"
+    )
+    default_price_per_loose_egg = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        default=Decimal('0.00'),
+        help_text="Default selling price per individual loose egg"
+    )
+    farm_name = models.CharField(max_length=150, default="EggFarm Pro")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Farm Settings (Crate: GH₵{self.default_price_per_crate})"
+
+    @classmethod
+    def get_settings(cls):
+        """Returns the singleton settings instance, creating it if it doesn't exist."""
+        setting, _ = cls.objects.get_or_create(id=1)
+        return setting
+
+
 class FlockQuerySet(models.QuerySet):
     def with_mortality(self):
         """Annotates each flock with its cumulative mortality in a single query."""
@@ -125,7 +152,7 @@ class EggSale(models.Model):
     ]
 
     date = models.DateField(default=timezone.now, db_index=True)
-    customer_name = models.CharField(max_length=150, help_text="Buyer name or store")
+    customer_name = models.CharField(max_length=150, blank=True, default='', help_text="Buyer name or store (optional)")
     customer_phone = models.CharField(max_length=20, blank=True, null=True)
     
     crates_sold = models.PositiveIntegerField(default=0, help_text="Number of crates (30 eggs/crate)")
@@ -149,7 +176,8 @@ class EggSale(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.date} - {self.customer_name} ({self.crates_sold} crates)"
+        buyer = self.customer_name if self.customer_name else "Walk-in Buyer"
+        return f"{self.date} - {buyer} ({self.crates_sold} crates)"
 
     @property
     def balance_due(self):

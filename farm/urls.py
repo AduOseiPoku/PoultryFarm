@@ -19,4 +19,7 @@ urlpatterns = [
 
     # Inventory
     path('inventory/', views.inventory_view, name='inventory'),
+
+    # Pricing & Farm Settings
+    path('settings/', views.farm_settings_view, name='farm_settings'),
 ]

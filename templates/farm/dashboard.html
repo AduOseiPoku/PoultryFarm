@@ -94,7 +94,7 @@
                     {{ crates_in_stock }} <span class="text-sm font-normal text-slate-500">crates ready</span>
                 </div>
                 <div class="text-xs text-slate-500 mt-1">
-                    Today's Sales: {{ today_crates_sold }} crates (${{ today_revenue }})
+                    Today's Sales: {{ today_crates_sold }} crates (GH₵{{ today_revenue }})
                 </div>
             </div>
         </div>
@@ -186,7 +186,7 @@
                             <td class="p-3 font-medium text-slate-900">{{ sale.date|date:"M d, Y" }}</td>
                             <td class="p-3 text-slate-600 font-medium">{{ sale.customer_name }}</td>
                             <td class="p-3 font-semibold text-slate-800">{{ sale.crates_sold }} cr</td>
-                            <td class="p-3 text-slate-900 font-bold">${{ sale.total_amount }}</td>
+                            <td class="p-3 text-slate-900 font-bold">GH₵{{ sale.total_amount }}</td>
                             <td class="p-3">
                                 {% if sale.payment_status == 'PAID' %}
                                     <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">Paid</span>

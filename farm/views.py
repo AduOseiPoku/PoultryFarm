@@ -8,8 +8,8 @@ from datetime import timedelta
 from decimal import Decimal
 import json
 
-from .models import Flock, DailyLog, EggSale
-from .forms import FlockForm, DailyLogForm, EggSaleForm
+from .models import Flock, DailyLog, EggSale, FarmSetting
+from .forms import FlockForm, DailyLogForm, EggSaleForm, FarmSettingForm
 
 def dashboard(request):
     today = timezone.now().date()
@@ -118,7 +118,7 @@ def dashboard(request):
 
 def log_list(request):
     logs_qs = DailyLog.objects.select_related('flock').order_by('-date')
-    paginator = Paginator(logs_qs, 20)  # Paginate 20 records per page
+    paginator = Paginator(logs_qs, 20)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     return render(request, 'farm/log_list.html', {'logs': page_obj, 'page_obj': page_obj})
@@ -129,7 +129,7 @@ def log_create(request):
         form = DailyLogForm(request.POST)
         if form.is_valid():
             log = form.save()
-            messages.success(request, f"Daily log for {log.flock.name} on {log.date} recorded successfully!")
+            messages.success(request, f"Daily log for {log.flock.name} on {log.date} ({log.get_collection_round_display()}) recorded successfully!")
             return redirect('log_list')
     else:
         form = DailyLogForm()
@@ -155,7 +155,6 @@ def sales_list(request):
     if status_filter:
         sales_qs = sales_qs.filter(payment_status=status_filter)
     
-    # Combined into a single aggregate query
     totals = sales_qs.aggregate(
         total_sales_amount=Coalesce(Sum('total_amount'), Value(Decimal('0.00'))),
         total_unpaid=Coalesce(
@@ -167,7 +166,7 @@ def sales_list(request):
         )
     )
 
-    paginator = Paginator(sales_qs, 20)  # Paginate 20 records per page
+    paginator = Paginator(sales_qs, 20)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
@@ -185,7 +184,7 @@ def sales_create(request):
         form = EggSaleForm(request.POST)
         if form.is_valid():
             sale = form.save()
-            messages.success(request, f"Sale to {sale.customer_name} ({sale.crates_sold} crates) recorded!")
+            messages.success(request, f"Sale to {sale.customer_name} ({sale.crates_sold} crates @ ${sale.price_per_crate}) recorded!")
             return redirect('sales_list')
     else:
         form = EggSaleForm()
@@ -243,3 +242,16 @@ def flock_create(request):
     else:
         form = FlockForm()
     return render(request, 'farm/flock_form.html', {'form': form, 'title': 'Add New Flock / Shed'})
+
+
+def farm_settings_view(request):
+    settings = FarmSetting.get_settings()
+    if request.method == 'POST':
+        form = FarmSettingForm(request.POST, instance=settings)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Default crate price updated to ${settings.default_price_per_crate}!")
+            return redirect('farm_settings')
+    else:
+        form = FarmSettingForm(instance=settings)
+    return render(request, 'farm/settings.html', {'form': form, 'settings': settings})
